@@ -1,0 +1,106 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
+  "build": {
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run dev",
+    "devPath": "http://localhost:5173",
+    "distDir": "../dist"
+  },
+  "package": {
+    "productName": "PUB Code",
+    "version": "0.4.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": true,
+      "fs": {
+        "scope": ["*"]
+      },
+      "shell": {
+        "scope": [
+          {
+            "name": "build_c",
+            "cmd": "C:/mingw64/bin/gcc",
+            "args": [
+              "-g",
+              { "validator": "\\S+" },
+              "-o",
+              { "validator": "\\S+" }
+            ]
+          },
+          {
+            "name": "build_cpp",
+            "cmd": "C:/mingw64/bin/g++",
+            "args": [
+              "-g",
+              { "validator": "\\S+" },
+              "-o",
+              { "validator": "\\S+" }
+            ]
+          },
+          {
+            "name": "run",
+            "cmd": "C:/mingw64/bin/gdb",
+            "args": [
+              { "validator": "\\S+" },
+              "-batch",
+              "-ex",
+              "set new-console on",
+              "-ex",
+              "run"
+            ]
+          }
+        ]
+      }
+    },
+    "bundle": {
+      "active": false,
+      "category": "DeveloperTool",
+      "copyright": "",
+      "deb": {
+        "depends": []
+      },
+      "externalBin": [],
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
+      ],
+      "identifier": "org.pubpasim.code",
+      "longDescription": "",
+      "macOS": {
+        "entitlements": null,
+        "exceptionDomain": "",
+        "frameworks": [],
+        "providerShortName": null,
+        "signingIdentity": null
+      },
+      "resources": [],
+      "shortDescription": "",
+      "targets": "all",
+      "windows": {
+        "certificateThumbprint": null,
+        "digestAlgorithm": "sha256",
+        "timestampUrl": ""
+      }
+    },
+    "security": {
+      "csp": null
+    },
+    "updater": {
+      "active": false
+    },
+    "windows": [
+      {
+        "fullscreen": false,
+        "height": 600,
+        "resizable": true,
+        "title": "PUB Code",
+        "width": 800,
+        "decorations": false
+      }
+    ]
+  }
+}

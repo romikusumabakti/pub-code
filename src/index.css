@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Google Sans Display";
+  src: url("./assets/fonts/Google Sans Display/GoogleSansDisplay-Regular.ttf");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Google Sans Display";
+  src: url("./assets/fonts/Google Sans Display/GoogleSansDisplay-Italic.ttf");
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Google Sans Display";
+  src: url("./assets/fonts/Google Sans Display/GoogleSansDisplay-Medium.ttf");
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Google Sans Display";
+  src: url("./assets/fonts/Google Sans Display/GoogleSansDisplay-MediumItalic.ttf");
+  font-weight: 500;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Google Sans Display";
+  src: url("./assets/fonts/Google Sans Display/GoogleSansDisplay-Bold.ttf");
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Google Sans Display";
+  src: url("./assets/fonts/Google Sans Display/GoogleSansDisplay-BoldItalic.ttf");
+  font-weight: bold;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Google Sans Text";
+  src: url("./assets/fonts/Google Sans Text/GoogleSansText-Regular.ttf");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Google Sans Text";
+  src: url("./assets/fonts/Google Sans Text/GoogleSansText-Italic.ttf");
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Google Sans Text";
+  src: url("./assets/fonts/Google Sans Text/GoogleSansText-Medium.ttf");
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Google Sans Text";
+  src: url("./assets/fonts/Google Sans Text/GoogleSansText-MediumItalic.ttf");
+  font-weight: 500;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Google Sans Text";
+  src: url("./assets/fonts/Google Sans Text/GoogleSansText-Bold.ttf");
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Google Sans Text";
+  src: url("./assets/fonts/Google Sans Text/GoogleSansText-BoldItalic.ttf");
+  font-weight: bold;
+  font-style: italic;
+}
+
+:root {
+  font-family: "Google Sans Text", sans-serif;
+  @apply text-[13px] select-none;
+}
+
+::-webkit-scrollbar {
+  @apply w-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-surface3 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-surface-variant rounded-full;
+}
+
+body {
+  margin: 0;
+}
+
+.display {
+  font-family: "Google Sans Display", sans-serif;
+}
+
+header {
+  @apply h-10 flex items-center justify-between shrink-0 uppercase text-[11px] px-4;
+}
+
+button,
+.button {
+  @apply flex items-center bg-on-surface bg-opacity-0 cursor-pointer;
+}
+
+button:hover,
+.button:hover {
+  @apply bg-opacity-hover;
+}
+
+/* button:focus {
+  @apply bg-opacity-focus;
+} */
+
+button:disabled,
+.button:disabled {
+  @apply text-on-disabled bg-opacity-0;
+}
+
+button.active,
+.button.active {
+  @apply bg-surface-variant;
+}
+
+a {
+  @apply text-primary cursor-pointer hover:underline;
+}
+
+input[type="text"],
+select {
+  @apply flex-grow h-8 px-2 rounded border border-outline outline-primary bg-transparent;
+}
+
+option {
+  @apply bg-surface1;
+}
+
+.monaco-editor .margin,
+.monaco-editor-background {
+  @apply !bg-surface;
+}
+
+.menu {
+  @apply bg-surface1 rounded;
+}
+
+.menu > button {
+  @apply px-3 h-12 w-full gap-3;
+}
+
+.menu > button:first-child {
+  @apply rounded-t;
+}
+
+.menu > button:last-child {
+  @apply rounded-b;
+}
+
+.menu > button > svg {
+  @apply text-primary;
+}
