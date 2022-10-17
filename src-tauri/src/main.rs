@@ -1,27 +1,12 @@
 #![cfg_attr(
-    all(not(run_assertions), target_os = "windows"),
+    all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
 )]
 
-// use std::process::Command;
 use tauri::Manager;
 use window_shadows::set_shadow;
 
 extern crate machine_uid;
-
-// #[tauri::command]
-// fn build(path: &str) {
-//     Command::new("C:\\mingw64\\bin\\gcc")
-//         .args(["-g", path, "-o", "D:\\main"])
-//         .spawn();
-// }
-
-// #[tauri::command]
-// fn run(path: &str) {
-//     Command::new("C:\\mingw64\\bin\\gdb")
-//         .args([path, "-batch", "-ex", "set new-console on", "-ex", "run"])
-//         .spawn();
-// }
 
 #[tauri::command]
 fn machine_uid() -> Result<String, String> {
