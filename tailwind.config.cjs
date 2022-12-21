@@ -1,9 +1,14 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: ["./src/**/*.{js,jsx,ts,tsx}"],
-  theme: {
-    extend: {},
+const { withMaterialColors } = require("tailwind-material-colors");
+
+module.exports = withMaterialColors(
+  {
+    content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+    theme: {
+      extend: {},
+    },
+    plugins: [],
+    darkMode: "class",
   },
-  plugins: [require("m3-tokens/tailwind")()],
-  darkMode: "class",
-};
+  { primary: "#ff0000" }
+);

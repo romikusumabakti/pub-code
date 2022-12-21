@@ -5,12 +5,18 @@ interface RadioButtonProps extends InputHTMLAttributes<HTMLInputElement> {
   disabled?: boolean;
 }
 
-function RadioButton({ children, disabled = false, ...rest }: RadioButtonProps) {
+function RadioButton({
+  children,
+  disabled = false,
+  ...rest
+}: RadioButtonProps) {
   return (
-    <label className={`flex-1 flex gap-2 ${disabled && "text-on-disabled"}`}>
-      <input type="radio" disabled={disabled} {...rest} />
-      {children}
-    </label>
+    <span className={`flex-1 flex ${disabled && "text-on-disabled"}`}>
+      <label className="flex gap-2">
+        <input type="radio" disabled={disabled} {...rest} />
+        {children}
+      </label>
+    </span>
   );
 }
 

@@ -5,6 +5,7 @@
 
 use tauri::Manager;
 use window_shadows::set_shadow;
+use window_vibrancy::apply_mica;
 
 extern crate machine_uid;
 
@@ -30,10 +31,10 @@ fn zoom(window: tauri::Window, factor: f64) {
 
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
             let window = app.get_window("main").unwrap();
-            set_shadow(&window, true).expect("Unsupported platform!");
+            set_shadow(&window, true).unwrap();
+            apply_mica(&window).unwrap();
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![machine_uid, zoom])

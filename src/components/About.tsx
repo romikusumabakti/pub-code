@@ -26,11 +26,8 @@ export function AboutFooter() {
   return (
     <div className="flex flex-col gap-1">
       <div>
-        <Trans
-          i18nKey="about.partOfPubPortal"
-          values={{ pubPortal: t("pubPortal") }}
-        >
-          <Link className="display" to="https://portal.pubpasim.org/" />
+        <Trans i18nKey="about.partOfPubNext" values={{ pubNext: t("pubNext") }}>
+          <Link className="display" to="https://next.pubpasim.org/" />
         </Trans>
       </div>
       <div>
@@ -64,7 +61,10 @@ function About({ isOpen, setIsOpen }: AboutProps) {
         <div>
           {t("about.version")}: {version}
         </div>
-        <div>{t("about.creator")}: Romi Kusuma Bakti</div>
+        <div>
+          {t("about.projectFounder")}:{" "}
+          <Link to="https://github.com/romikusumabakti">Romi Kusuma Bakti</Link>
+        </div>
         <div>{t("about.license")}: MIT</div>
         <div>
           GitHub: <Link>https://github.com/romikusumabakti/pub-code</Link>

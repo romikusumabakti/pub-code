@@ -7,53 +7,14 @@
   },
   "package": {
     "productName": "pub-code",
-    "version": "0.5.0"
+    "version": "0.0.0"
   },
   "tauri": {
     "allowlist": {
-      "all": true,
-      "fs": {
-        "scope": ["*"]
-      },
-      "shell": {
-        "scope": [
-          {
-            "name": "build_c",
-            "cmd": "C:/mingw64/bin/gcc",
-            "args": [
-              "-g",
-              { "validator": "\\S+" },
-              "-o",
-              { "validator": "\\S+" }
-            ]
-          },
-          {
-            "name": "build_cpp",
-            "cmd": "C:/mingw64/bin/g++",
-            "args": [
-              "-g",
-              { "validator": "\\S+" },
-              "-o",
-              { "validator": "\\S+" }
-            ]
-          },
-          {
-            "name": "run",
-            "cmd": "C:/mingw64/bin/gdb",
-            "args": [
-              { "validator": "\\S+" },
-              "-batch",
-              "-ex",
-              "set new-console on",
-              "-ex",
-              "run"
-            ]
-          }
-        ]
-      }
+      "all": true
     },
     "bundle": {
-      "active": false,
+      "active": true,
       "category": "DeveloperTool",
       "copyright": "",
       "deb": {
@@ -94,11 +55,12 @@
     "windows": [
       {
         "fullscreen": false,
+        "height": 600,
         "resizable": true,
-        "title": "PUB Code",
-        "minWidth": 800,
-        "minHeight": 600,
-        "decorations": false
+        "title": "pub-code",
+        "width": 800,
+        "decorations": false,
+        "transparent": true
       }
     ]
   }

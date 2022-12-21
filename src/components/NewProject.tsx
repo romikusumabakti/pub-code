@@ -1,5 +1,5 @@
 import { open } from "@tauri-apps/api/dialog";
-import { createDir, readDir, writeTextFile } from "@tauri-apps/api/fs";
+import { createDir, exists, writeTextFile } from "@tauri-apps/api/fs";
 import { documentDir, join } from "@tauri-apps/api/path";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -85,10 +85,9 @@ function NewProject({ isOpen, setIsOpen, onCreate }: NewProjectProps) {
         while (true) {
           const projectName = `project-${projectNumber}`;
           const projectPath = await join(pubCodePath, projectName);
-          try {
-            await readDir(projectPath);
+          if ((await exists(projectPath)) as unknown) {
             projectNumber++;
-          } catch (error) {
+          } else {
             setConfiguration({
               ...configuration,
               name: projectName,
@@ -221,12 +220,8 @@ function NewProject({ isOpen, setIsOpen, onCreate }: NewProjectProps) {
                 required
               />
             </div>
-            <div className="flex items-center">
-              <span className="w-32">{t("newProject.compilerPath")}</span>
-              <input type="text" value="C:\mingw64\bin" required />
-            </div>
           </div>
-          <div className="flex flex-col gap-1 py-4">
+          <div className="flex flex-col gap-1 py-4 items-start">
             <label className="flex gap-2">
               <input
                 type="checkbox"

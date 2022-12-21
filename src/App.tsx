@@ -6,46 +6,47 @@ import {
   useRef,
   useState,
 } from "react";
+import "./App.css";
 
 import { open } from "@tauri-apps/api/dialog";
 import {
+  createDir,
+  exists,
   FileEntry,
   readDir,
   readTextFile,
   writeTextFile,
 } from "@tauri-apps/api/fs";
+import { register } from "@tauri-apps/api/globalShortcut";
 import { basename, extname, join } from "@tauri-apps/api/path";
-import { Command } from "@tauri-apps/api/shell";
-import { register, unregisterAll } from "@tauri-apps/api/globalShortcut";
-import { invoke } from "@tauri-apps/api";
-import { appWindow } from "@tauri-apps/api/window";
+import { Child, Command } from "@tauri-apps/api/shell";
+import { invoke } from "@tauri-apps/api/tauri";
+
+import i18next from "i18next";
+import { useTranslation, initReactI18next } from "react-i18next";
+import LanguageDetector from "i18next-browser-languagedetector";
+import { resources } from "./utils/i18n";
+
+import { themeFromSourceColor } from "@material/material-color-utilities/dist";
+import { applyTheme, colors } from "./utils/materialTheme";
+
+import { VscClose, VscDebugStop, VscPlay } from "react-icons/vsc";
 
 import { Allotment, LayoutPriority } from "allotment";
 import "allotment/dist/style.css";
 
-import * as monaco from "monaco-editor";
-import Editor, { loader } from "@monaco-editor/react";
-
-import { init, format } from "wastyle";
-import astyleBinaryUrl from "wastyle/dist/astyle.wasm?url";
-
 import TitleBar from "./components/TitleBar";
+import Folder from "./components/Folder";
+import FileIcon from "./components/FileIcon";
 import Splash from "./components/Splash";
 import NewProject from "./components/NewProject";
 import About from "./components/About";
 
-import i18next from "i18next";
-import { initReactI18next, useTranslation } from "react-i18next";
-import LanguageDetector from "i18next-browser-languagedetector";
-
-import { VscClose, VscPlay } from "react-icons/vsc";
-import { themeFromSourceColor } from "@material/material-color-utilities/dist";
-import Folder from "./components/Folder";
-
-import { resources } from "./utils/i18n";
-import { applyTheme, colors } from "./utils/materialTheme";
+import Editor, { loader } from "@monaco-editor/react";
+import * as monaco from "monaco-editor";
 import { sendStats } from "./utils/analytics";
-import FileIcon from "./components/FileIcon";
+import { init, format } from "wastyle";
+import astyleBinaryUrl from "wastyle/dist/astyle.wasm?url";
 
 let zoomLevel = parseInt(localStorage.getItem("zoom")!) || 0;
 
@@ -125,6 +126,7 @@ function App() {
   const [darkTheme, setDarkTheme] = useState<boolean>(false);
 
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const [position, setPosition] = useState<monaco.Position>();
 
   const logRef = useRef<HTMLTextAreaElement>(null);
 
@@ -145,7 +147,7 @@ function App() {
   const [isOpenProjectOpen, setIsOpenProjectOpen] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isBuilding, setIsBuilding] = useState<boolean>(false);
-  const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [debuggingChild, setDebuggingChild] = useState<Child>();
 
   const [status, setStatus] = useState<string>();
 
@@ -161,42 +163,53 @@ function App() {
       setIsBuilding(true);
       log(`${t("status.compiling")}...`);
       setStatus(`${t("status.compiling")}...`);
+      const buildFolderPath = await join(currentProjectPath, "build");
+      if (!((await exists(buildFolderPath)) as unknown)) {
+        await createDir(buildFolderPath, {
+          recursive: true,
+        });
+      }
+      const language = await extname(sourcePath);
       const program = await basename(
         sourcePath,
-        `.${currentProjectConfig?.language}`
+        `.${currentProjectConfig?.language || language}`
       );
       const binaryPath = await join(
         currentProjectPath,
         "build",
         `${program}.exe`
       );
-      const command = new Command(`build_${await extname(sourcePath)}`, [
+      const command = new Command(`build_${language}`, [
         "-g",
         sourcePath,
         "-o",
         binaryPath,
       ]);
-      command.stderr.on("data", (data) => log(data));
-      command.on("close", (data) => {
-        setIsBuilding(false);
+      command.stderr.on("data", (data) => {
+        if (data.includes(": warning: ")) {
+          setIsLogOpen(true);
+        }
+        log(data);
+      });
+      command.on("close", async (data) => {
         setStatus("");
         if (data.code === 0) {
           sendStats("build");
           log(`${t("log.compilation.finished")} (${binaryPath}).`);
-          callback!(binaryPath);
+          await callback!(binaryPath);
         } else {
           setIsLogOpen(true);
           log(`${t("log.compilation.failed")}.`);
           callback!();
         }
+        setIsBuilding(false);
       });
       command.spawn();
     }
   }
 
-  function run(binaryPath: string) {
+  async function run(binaryPath: string) {
     if (binaryPath) {
-      setIsRunning(true);
       log(`${t("status.running")}...`);
       setStatus(`${t("status.running")}...`);
       const command = new Command("run", [
@@ -209,13 +222,11 @@ function App() {
       ]);
       command.stdout.on("data", (data) => log(data));
       command.on("close", () => {
+        setDebuggingChild(undefined);
         log(`${t("log.runningFinished")}.`);
-        setIsRunning(false);
         setStatus("");
       });
-      command.spawn();
-    } else {
-      setIsRunning(false);
+      setDebuggingChild(await command.spawn());
     }
   }
 
@@ -288,11 +299,14 @@ function App() {
       action: () => {
         command.build.action((binaryPath: string) => run(binaryPath));
       },
-      disabled: !currentProjectConfig?.mainProgram || isBuilding || isRunning,
+      disabled:
+        !currentProjectConfig?.mainProgram ||
+        isBuilding ||
+        debuggingChild !== undefined,
     },
     runFile: {
       title: t("command.runFile"),
-      shortcut: "Alt+F5",
+      shortcut: "Alt+R",
       action: () => {
         if (openedFiles.length > 0) {
           build(openedFiles[currentFileIndex].path, (binaryPath: string) =>
@@ -300,12 +314,16 @@ function App() {
           );
         }
       },
-      disabled:
-        !(
-          currentFileIndex < openedFiles.length &&
-          (openedFiles[currentFileIndex].name.endsWith(".c") ||
-            openedFiles[currentFileIndex].name.endsWith(".cpp"))
-        ) || isRunning,
+      disabled: !(
+        currentFileIndex < openedFiles.length &&
+        (openedFiles[currentFileIndex].name.endsWith(".c") ||
+          openedFiles[currentFileIndex].name.endsWith(".cpp"))
+      ),
+    },
+    stop: {
+      title: t("command.stop"),
+      shortcut: "CommandOrControl+K",
+      action: () => debuggingChild?.kill(),
     },
     log: {
       title: t("command.log"),
@@ -342,7 +360,6 @@ function App() {
         if (zoomLevel > -3) {
           zoomLevel--;
           const zoomFactor = updateZoom();
-          invoke("zoom", { factor: zoomFactor });
           log(
             `${t("command.zoomOut")} ${zoomFactor.toLocaleString("id-ID", {
               style: "percent",
@@ -399,13 +416,13 @@ function App() {
     });
     const zoomFactor = Math.pow(1.2, zoomLevel);
     invoke("zoom", { factor: zoomFactor });
-    appWindow.onFocusChanged(({ payload: focused }) => {
-      if (focused) {
-        registerAllcommand();
-      } else {
-        unregisterAll();
-      }
-    });
+    // appWindow.onFocusChanged(({ payload: focused }) => {
+    //   if (focused) {
+    //     registerAllcommand();
+    //   } else {
+    //     unregisterAll();
+    //   }
+    // });
   }, []);
 
   useEffect(() => {
@@ -484,18 +501,35 @@ function App() {
   }, [openedFiles]);
 
   useEffect(() => {
-    // onkeydown = (e) => {
-    //   if (!(e.ctrlKey && e.key === "r")) {
-    //     e.preventDefault();
-    //     if (e.key === "F5") {
-    //       command.run.action();
-    //     }
-    //   }
-    // };
-    registerAllcommand();
+    onkeydown = (e) => {
+      if (
+        e.key !== "F5" &&
+        ((e.ctrlKey &&
+          e.key.toLowerCase() !== "c" &&
+          e.key.toLowerCase() !== "v") ||
+          e.altKey)
+      ) {
+        e.preventDefault();
+        for (let key in command) {
+          if (command[key].shortcut) {
+            const buttons = command[key].shortcut!.split("+");
+            if (
+              ((buttons[0] === "CommandOrControl" && e.ctrlKey) ||
+                (buttons[0] === "Alt" && e.altKey)) &&
+              buttons[1].toLowerCase() === e.key.toLowerCase()
+            ) {
+              command[key].action();
+              break;
+            }
+          }
+        }
+        Object.values(command).map((command) => {});
+      }
+    };
+    // registerAllcommand();
     return () => {
-      // onkeydown = null;
-      unregisterAll();
+      onkeydown = null;
+      // unregisterAll();
     };
   }, [currentFileIndex, openedFiles]);
 
@@ -563,7 +597,7 @@ function App() {
                   <Allotment proportionalLayout={false} vertical>
                     <div className="h-full flex flex-col bg-surface">
                       <div
-                        className={`flex gap-1 ${
+                        className={`flex gap-1 h-10 shrink-0 ${
                           openedFiles.length > 0 && "bg-surface1"
                         }`}
                       >
@@ -600,14 +634,24 @@ function App() {
                             </span>
                           ))}
                         </span>
-                        <button
-                          className="h-10 flex gap-2 px-4 text-primary"
-                          onClick={command.runFile.action}
-                          disabled={command.runFile.disabled}
-                        >
-                          <VscPlay />
-                          {t("command.runFile")}
-                        </button>
+                        {!command.runFile.disabled &&
+                          (isBuilding || debuggingChild !== undefined ? (
+                            <button
+                              className="flex gap-2 px-4 text-primary"
+                              onClick={command.stop.action}
+                            >
+                              <VscDebugStop />
+                              {t("command.stop")}
+                            </button>
+                          ) : (
+                            <button
+                              className="flex gap-2 px-4 text-primary"
+                              onClick={command.runFile.action}
+                            >
+                              <VscPlay />
+                              {t("command.runFile")}
+                            </button>
+                          ))}
                       </div>
                       {currentFileIndex < openedFiles.length && (
                         <Editor
@@ -617,7 +661,13 @@ function App() {
                           }
                           defaultValue={openedFiles[currentFileIndex].value}
                           theme={darkTheme ? "vs-dark" : "vs"}
-                          onMount={(editor) => (editorRef.current = editor)}
+                          loading={`${t("loading")}...`}
+                          onMount={(editor) => {
+                            editor.onDidChangeCursorPosition((e) =>
+                              setPosition(e.position)
+                            );
+                            editorRef.current = editor;
+                          }}
                           onChange={async (value) => {
                             if (value) {
                               await writeTextFile(
@@ -665,8 +715,14 @@ function App() {
                 />
                 <About isOpen={isAboutOpen} setIsOpen={setIsAboutOpen} />
               </div>
-              <div className="bg-surface5 h-8 flex items-center px-4">
-                {status}
+              <div className="bg-surface5 h-8 flex items-center px-4 justify-between">
+                <span>{status}</span>
+                {position && (
+                  <span>
+                    {t("status.line")} {position.lineNumber},{" "}
+                    {t("status.column")} {position.column}
+                  </span>
+                )}
               </div>
             </div>
           </FileContext.Provider>

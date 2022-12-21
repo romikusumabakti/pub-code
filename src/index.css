@@ -131,7 +131,7 @@ button:hover,
 
 button:disabled,
 .button:disabled {
-  @apply text-on-disabled bg-opacity-0;
+  @apply text-on-surface text-opacity-disabled bg-opacity-0;
 }
 
 button.active,
@@ -175,4 +175,29 @@ option {
 
 .menu > button > svg {
   @apply text-primary;
+}
+
+.text-on-disabled,
+.bg-opacity-hover {
+}
+
+.bg-surface1,
+.bg-surface3,
+.bg-surface5 {
+  @apply bg-surface bg-gradient-to-t;
+}
+
+.bg-surface1 {
+  @apply from-primary/[.05] to-primary/[.05];
+}
+
+.bg-surface3 {
+  @apply from-primary/[.11] to-primary/[.11];
+}
+
+.bg-surface5 {
+  @apply from-primary/[.14] to-primary/[.14];
+}
+
+.text-opacity-disabled {
 }
