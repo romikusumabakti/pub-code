@@ -1,12 +1,11 @@
 import { Dispatch, SetStateAction, useContext } from "react";
 import { MdDarkMode, MdLanguage, MdLightMode, MdPalette } from "react-icons/md";
-import { ColorContext, CommandContext, ThemeContext } from "../App";
+import { ColorContext, CommandContext, Theme, ThemeContext } from "../App";
 import { useTranslation } from "react-i18next";
 import Button from "./Button";
 import Dialog from "./Dialog";
 import { VscClose } from "react-icons/vsc";
 import { AboutFooter, AboutHeader } from "./About";
-import { hexFromArgb } from "@material/material-color-utilities/dist";
 import { sendStats } from "../utils/analytics";
 import { colors } from "../utils/materialTheme";
 
@@ -18,7 +17,7 @@ interface SplashProps {
 function Splash({ isOpen, setOpen }: SplashProps) {
   const { t, i18n } = useTranslation();
   const { color, setColor } = useContext(ColorContext) || {};
-  const { theme, setTheme, darkTheme } = useContext(ThemeContext) || {};
+  const { theme, setTheme } = useContext(ThemeContext) || {};
   const command = useContext(CommandContext);
 
   return (
@@ -74,7 +73,7 @@ function Splash({ isOpen, setOpen }: SplashProps) {
               <option
                 key={color[0]}
                 value={color[0]}
-                style={{ color: hexFromArgb(color[1]) }}
+                style={{ color: color[1] }}
               >
                 {t(`color.${color[0]}`)}
               </option>
@@ -83,14 +82,14 @@ function Splash({ isOpen, setOpen }: SplashProps) {
         </label>
         <label>
           <div className="flex gap-2 items-center">
-            {darkTheme ? <MdDarkMode /> : <MdLightMode />}
+            {theme === "dark" ? <MdDarkMode /> : <MdLightMode />}
             <span>{t("theme.title")}</span>
           </div>
           <select
             value={theme}
             onChange={(e) => {
               sendStats("select_theme", { theme: e.target.value });
-              setTheme!(e.target.value);
+              setTheme!(e.target.value as Theme);
             }}
           >
             {["system", "light", "dark"].map((theme) => (

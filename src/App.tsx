@@ -17,7 +17,7 @@ import {
   readTextFile,
   writeTextFile,
 } from "@tauri-apps/api/fs";
-import { register } from "@tauri-apps/api/globalShortcut";
+// import { register, registerAll } from "@tauri-apps/api/globalShortcut";
 import { basename, extname, join } from "@tauri-apps/api/path";
 import { Child, Command } from "@tauri-apps/api/shell";
 import { invoke } from "@tauri-apps/api/tauri";
@@ -27,8 +27,8 @@ import { useTranslation, initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { resources } from "./utils/i18n";
 
-import { themeFromSourceColor } from "@material/material-color-utilities/dist";
-import { applyTheme, colors } from "./utils/materialTheme";
+import { updateTheme } from "tailwind-material-colors/lib/updateTheme.esm";
+import { colors } from "./utils/materialTheme";
 
 import { VscClose, VscDebugStop, VscPlay } from "react-icons/vsc";
 
@@ -47,6 +47,7 @@ import * as monaco from "monaco-editor";
 import { sendStats } from "./utils/analytics";
 import { init, format } from "wastyle";
 import astyleBinaryUrl from "wastyle/dist/astyle.wasm?url";
+import { watchImmediate } from "tauri-plugin-fs-watch-api";
 
 let zoomLevel = parseInt(localStorage.getItem("zoom")!) || 0;
 
@@ -71,17 +72,16 @@ i18next
     },
   });
 
+export type Theme = "system" | "light" | "dark";
+
 interface IColorContext {
   color: string;
   setColor: Dispatch<SetStateAction<string>>;
 }
 
-interface IThemeContext {
-  theme: string;
-  setTheme: Dispatch<SetStateAction<string>>;
-  darkTheme: boolean;
-  setDarkTheme: Dispatch<SetStateAction<boolean>>;
-  darkSystemThemeQuery: MediaQueryList;
+interface ThemeContextType {
+  theme: Theme;
+  setTheme: Dispatch<SetStateAction<Theme>>;
 }
 
 export interface ICommand {
@@ -106,11 +106,12 @@ interface IFileContext {
 }
 
 export const ColorContext = createContext<IColorContext | null>(null);
-export const ThemeContext = createContext<IThemeContext | null>(null);
+export const ThemeContext = createContext<ThemeContextType>({
+  theme: "system",
+  setTheme: () => null,
+});
 export const CommandContext = createContext<Record<string, ICommand>>({});
 export const FileContext = createContext<IFileContext | null>(null);
-
-const darkSystemThemeQuery = matchMedia("(prefers-color-scheme: dark)");
 
 loader.config({ monaco });
 
@@ -120,10 +121,9 @@ function App() {
   const [color, setColor] = useState<string>(
     localStorage.getItem("color") || "blueAccent"
   );
-  const [theme, setTheme] = useState<string>(
-    localStorage.getItem("theme") || "system"
+  const [theme, setTheme] = useState<Theme>(
+    (localStorage.getItem("theme") as Theme) || "system"
   );
-  const [darkTheme, setDarkTheme] = useState<boolean>(false);
 
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const [position, setPosition] = useState<monaco.Position>();
@@ -217,6 +217,8 @@ function App() {
         "-batch",
         "-ex",
         '"set new-console on"',
+        "-ex",
+        `set cwd ${currentProjectPath}`,
         "-ex",
         "run",
       ]);
@@ -383,19 +385,13 @@ function App() {
     },
   };
 
-  function updateTheme() {
-    const theme = darkTheme ? "dark" : "light";
-    document.documentElement.className = theme;
-    document.documentElement.style.colorScheme = theme;
-  }
-
-  function registerAllcommand() {
-    Object.values(command).forEach((command) => {
-      if (command.shortcut) {
-        register(command.shortcut, command.action);
-      }
-    });
-  }
+  // function registerAllcommand() {
+  //   Object.values(command).forEach((command) => {
+  //     if (command.shortcut) {
+  //       register(command.shortcut, command.action);
+  //     }
+  //   });
+  // }
 
   useEffect(() => {
     sendStats("start", { language: i18n.language, theme, color });
@@ -426,29 +422,40 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const materialtheme = themeFromSourceColor(colors[color]);
-    applyTheme(materialtheme, {
-      target: document.documentElement,
-      dark: darkTheme,
-    });
+    updateTheme(
+      {
+        primary: colors[color],
+      },
+      "class"
+    );
     localStorage.setItem("color", color);
-  }, [color, darkTheme]);
+  }, [color]);
 
   useEffect(() => {
-    if (theme === "system") {
-      setDarkTheme(darkSystemThemeQuery.matches);
-      localStorage.removeItem("theme");
-      darkSystemThemeQuery.onchange = updateTheme;
-    } else {
-      setDarkTheme(theme === "dark");
-      localStorage.setItem("theme", theme);
-      darkSystemThemeQuery.onchange = null;
-    }
+    document.documentElement.className = theme;
+    document.documentElement.style.colorScheme = theme;
+    localStorage.setItem("theme", theme);
   }, [theme]);
 
-  useEffect(updateTheme, [darkTheme]);
+  useEffect(() => {
+    function handleMediaQueryChange(e: MediaQueryListEvent) {
+      if (e.matches) {
+        setTheme("dark");
+      } else {
+        setTheme("light");
+      }
+    }
+    if (theme === "system") {
+      const mediaQueryList = window.matchMedia("(prefers-color-scheme: dark)");
+      mediaQueryList.addEventListener("change", handleMediaQueryChange);
+      return () => {
+        mediaQueryList.removeEventListener("change", handleMediaQueryChange);
+      };
+    }
+  }, []);
 
   useEffect(() => {
+    console.log("currentProjectPath changed");
     if (currentProjectPath) {
       localStorage.setItem("currentProjectPath", currentProjectPath);
       readDir(currentProjectPath).then(async (entries) => {
@@ -498,6 +505,32 @@ function App() {
     if (currentFileIndex >= openedFiles.length) {
       setCurrentFileIndex(0);
     }
+    watchImmediate(
+      openedFiles.map((openedFile, i) => openedFile.path),
+      { recursive: false },
+      async (e) => {
+        if (e.operation === 4 || e.operation === 4) {
+          setOpenedFiles(
+            openedFiles.filter((openedFile) => openedFile.path !== e.path)
+          );
+        } else if (
+          e.path &&
+          e.operation === 16 &&
+          e.path !== openedFiles[currentFileIndex].path
+        ) {
+          const value = await readTextFile(e.path);
+          setOpenedFiles(
+            openedFiles.map((openedFile) => {
+              if (openedFile.path === e.path) {
+                return { ...openedFile, value };
+              } else {
+                return openedFile;
+              }
+            })
+          );
+        }
+      }
+    );
   }, [openedFiles]);
 
   useEffect(() => {
@@ -523,7 +556,7 @@ function App() {
             }
           }
         }
-        Object.values(command).map((command) => {});
+        // Object.values(command).map((command) => {});
       }
     };
     // registerAllcommand();
@@ -535,15 +568,7 @@ function App() {
 
   return (
     <ColorContext.Provider value={{ color, setColor }}>
-      <ThemeContext.Provider
-        value={{
-          theme,
-          setTheme,
-          darkTheme,
-          setDarkTheme,
-          darkSystemThemeQuery,
-        }}
-      >
+      <ThemeContext.Provider value={{ theme, setTheme }}>
         <CommandContext.Provider value={command}>
           <FileContext.Provider
             value={{
@@ -588,7 +613,7 @@ function App() {
                             key={entry.path}
                             path={entry.path}
                             name={entry.name}
-                            autoFetchChildren={true}
+                            open={true}
                           />
                         ))}
                       </div>
@@ -659,8 +684,8 @@ function App() {
                           defaultLanguage={
                             openedFiles[currentFileIndex].language
                           }
-                          defaultValue={openedFiles[currentFileIndex].value}
-                          theme={darkTheme ? "vs-dark" : "vs"}
+                          value={openedFiles[currentFileIndex].value}
+                          theme={theme === "dark" ? "vs-dark" : "vs"}
                           loading={`${t("loading")}...`}
                           onMount={(editor) => {
                             editor.onDidChangeCursorPosition((e) =>

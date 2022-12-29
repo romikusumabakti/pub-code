@@ -10,7 +10,6 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@material/material-color-utilities": "^0.2.0",
     "@monaco-editor/react": "^4.4.6",
     "@tauri-apps/api": "^1.2.0",
     "allotment": "^1.17.1",
@@ -21,6 +20,7 @@
     "react-dom": "^18.2.0",
     "react-i18next": "^12.1.1",
     "react-icons": "^4.7.1",
+    "tauri-plugin-fs-watch-api": "github:tauri-apps/tauri-plugin-fs-watch",
     "wastyle": "^0.0.5"
   },
   "devDependencies": {

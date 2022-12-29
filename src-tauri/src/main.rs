@@ -4,6 +4,7 @@
 )]
 
 use tauri::Manager;
+use tauri_plugin_fs_watch::Watcher;
 use window_shadows::set_shadow;
 use window_vibrancy::apply_mica;
 
@@ -31,12 +32,14 @@ fn zoom(window: tauri::Window, factor: f64) {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
             let window = app.get_window("main").unwrap();
             set_shadow(&window, true).unwrap();
             apply_mica(&window).unwrap();
             Ok(())
         })
+        .plugin(Watcher::default())
         .invoke_handler(tauri::generate_handler![machine_uid, zoom])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

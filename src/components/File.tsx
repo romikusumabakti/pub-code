@@ -1,19 +1,11 @@
 import {
-  FileEntry,
   readTextFile,
   removeFile,
   renameFile,
   writeTextFile,
 } from "@tauri-apps/api/fs";
 import { basename, dirname, extname, join } from "@tauri-apps/api/path";
-import {
-  ButtonHTMLAttributes,
-  Dispatch,
-  SetStateAction,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { ButtonHTMLAttributes, useContext, useEffect, useState } from "react";
 import { FileContext } from "../App";
 import FileIcon from "./FileIcon";
 import { BiRename } from "react-icons/bi";
@@ -24,19 +16,10 @@ interface EntryProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   path?: string;
   name?: string;
   level?: number;
-  siblings: FileEntry[];
-  setSiblings: Dispatch<SetStateAction<FileEntry[]>>;
   onCreate?: () => any;
 }
 
-function File({
-  path,
-  name,
-  level = 0,
-  siblings,
-  setSiblings,
-  onCreate,
-}: EntryProps) {
+function File({ path, name, level = 0, onCreate }: EntryProps) {
   const { t } = useTranslation();
 
   const [newName, setNewName] = useState<string | undefined>(name);
@@ -116,19 +99,6 @@ function File({
                 const folderPath = await dirname(path);
                 const newPath = await join(folderPath, newName);
                 renameFile(path, newPath);
-                setSiblings!(
-                  siblings!.map((file) => {
-                    if (file.path === path) {
-                      return {
-                        ...file,
-                        path: newPath,
-                        name: newName,
-                      };
-                    } else {
-                      return file;
-                    }
-                  })
-                );
                 setOpenedFiles!(
                   openedFiles!.map((file) => {
                     if (file.path === path) {
@@ -176,12 +146,14 @@ function File({
             </button>
             <button
               onClick={async () => {
-                if (path && (await confirm(t("explorer.deleteConfirm")))) {
-                  setSiblings(siblings.filter((file) => file.path !== path));
+                if (
+                  path &&
+                  (await confirm(t("explorer.deleteConfirm") || undefined))
+                ) {
+                  await removeFile(path);
                   setOpenedFiles!(
                     openedFiles!.filter((file) => file.path !== path)
                   );
-                  removeFile(path);
                 }
               }}
             >

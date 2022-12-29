@@ -177,8 +177,12 @@ option {
   @apply text-primary;
 }
 
-.text-on-disabled,
+.text-opacity-disabled {
+  @apply opacity-[.38];
+}
+
 .bg-opacity-hover {
+  @apply bg-opacity-[.08];
 }
 
 .bg-surface1,
@@ -197,7 +201,4 @@ option {
 
 .bg-surface5 {
   @apply from-primary/[.14] to-primary/[.14];
-}
-
-.text-opacity-disabled {
 }

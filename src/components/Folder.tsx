@@ -2,34 +2,36 @@ import { FileEntry, readDir } from "@tauri-apps/api/fs";
 import { ButtonHTMLAttributes, useEffect, useState } from "react";
 import { VscChevronDown, VscChevronRight, VscNewFile } from "react-icons/vsc";
 import File from "./File";
+import { watchImmediate } from "tauri-plugin-fs-watch-api";
 
 interface EntryProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   path?: string;
   name?: string;
   level?: number;
-  autoFetchChildren?: boolean;
+  open?: boolean;
 }
 
-function Folder({
-  path,
-  name,
-  level = 0,
-  autoFetchChildren = false,
-}: EntryProps) {
+function Folder({ path, name, level = 0, open = false }: EntryProps) {
   const [children, setChildren] = useState<FileEntry[]>([]);
-  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [isOpen, setIsOpen] = useState<boolean>(open);
   const [isNewFile, setIsNewFile] = useState<boolean>(false);
 
   async function fetchChildren() {
     if (path) {
       const entries = await readDir(path);
       setChildren(entries);
-      setIsOpen(true);
     }
   }
 
   useEffect(() => {
-    if (autoFetchChildren) {
+    if (path) {
+      watchImmediate(path, { recursive: false }, (e) => {
+        if (e.operation !== 16) {
+          fetchChildren();
+        }
+      });
+    }
+    if (open) {
       fetchChildren();
     }
   }, []);
@@ -47,6 +49,7 @@ function Folder({
             setIsOpen(false);
           } else {
             await fetchChildren();
+            setIsOpen(true);
           }
         }}
       >
@@ -62,7 +65,6 @@ function Folder({
           className="w-7 h-7 flex justify-center text-primary shrink-0"
           onClick={async (e) => {
             e.stopPropagation();
-            await fetchChildren();
             setIsNewFile(true);
           }}
         >
@@ -84,12 +86,7 @@ function Folder({
           <File
             path={path}
             level={level + 1}
-            siblings={children}
-            setSiblings={setChildren}
-            onCreate={() => {
-              fetchChildren();
-              setIsNewFile(false);
-            }}
+            onCreate={() => setIsNewFile(false)}
           />
         ),
         children!
@@ -100,8 +97,6 @@ function Folder({
               path={child.path}
               name={child.name}
               level={level + 1}
-              siblings={children}
-              setSiblings={setChildren}
             />
           )),
       ]}
