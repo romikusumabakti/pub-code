@@ -17,7 +17,7 @@ interface TitleBarProps {
 
 function TitleBar({ currentProjectPath, menu }: TitleBarProps) {
   const { i18n } = useTranslation();
-  const { theme, setTheme, darkTheme, darkSystemThemeQuery } =
+  const { theme, setTheme, darkTheme, darkThemeMediaQueryList } =
     useContext(ThemeContext) || {};
   const [isMaximized, setIsMaximized] = useState<boolean>();
   const { openedFiles, currentFileIndex } = useContext(FileContext) || {};
@@ -96,9 +96,9 @@ function TitleBar({ currentProjectPath, menu }: TitleBarProps) {
             if (theme === "system") {
               setTheme!(darkTheme ? "light" : "dark");
             } else if (theme === "light") {
-              setTheme!(darkSystemThemeQuery!.matches ? "system" : "dark");
+              setTheme!(darkThemeMediaQueryList!.matches ? "system" : "dark");
             } else if (theme === "dark") {
-              setTheme!(darkSystemThemeQuery!.matches ? "light" : "system");
+              setTheme!(darkThemeMediaQueryList!.matches ? "light" : "system");
             }
           }}
         >

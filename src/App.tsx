@@ -85,6 +85,7 @@ interface ThemeContextType {
   theme: Theme;
   setTheme: Dispatch<SetStateAction<Theme>>;
   darkTheme?: boolean;
+  darkThemeMediaQueryList?: MediaQueryList;
 }
 
 export interface ICommand {
@@ -434,17 +435,22 @@ function App() {
     localStorage.setItem("color", color);
   }, [color]);
 
-  const mediaQueryList = matchMedia("(prefers-color-scheme: dark)");
+  const darkThemeMediaQueryList = matchMedia("(prefers-color-scheme: dark)");
   const resolvedTheme =
-    theme === "system" ? (mediaQueryList.matches ? "dark" : "light") : theme;
+    theme === "system"
+      ? darkThemeMediaQueryList.matches
+        ? "dark"
+        : "light"
+      : theme;
 
   useEffect(() => {
     setDarkTheme(resolvedTheme === "dark");
     if (theme === "system") {
       localStorage.removeItem("theme");
-      mediaQueryList.onchange = () => setDarkTheme(mediaQueryList.matches);
+      darkThemeMediaQueryList.onchange = () =>
+        setDarkTheme(darkThemeMediaQueryList.matches);
       return () => {
-        mediaQueryList.onchange = null;
+        darkThemeMediaQueryList.onchange = null;
       };
     } else {
       localStorage.setItem("theme", theme);
@@ -570,7 +576,9 @@ function App() {
 
   return (
     <ColorContext.Provider value={{ color, setColor }}>
-      <ThemeContext.Provider value={{ theme, setTheme, darkTheme }}>
+      <ThemeContext.Provider
+        value={{ theme, setTheme, darkTheme, darkThemeMediaQueryList }}
+      >
         <CommandContext.Provider value={command}>
           <FileContext.Provider
             value={{

@@ -1,6 +1,6 @@
 # PUB Code
 
-PUB Code is a fast, simple, and open source C/C++ IDE for Windows.
+PUB Code (pronounced `/pé-u-bé koʊd/`) is a fast, simple, and open source C/C++ IDE for Windows.
 
 > PUB (Pemberdayaan Umat Berkelanjutan) is a scholarship program that provides opportunities for high school graduates to continue their studies (at Universitas Nasional PASIM, Bandung, Indonesia), learn to code, and become full-stack developers.
 
