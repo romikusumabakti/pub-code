@@ -17,7 +17,7 @@ interface SplashProps {
 function Splash({ isOpen, setOpen }: SplashProps) {
   const { t, i18n } = useTranslation();
   const { color, setColor } = useContext(ColorContext) || {};
-  const { theme, setTheme } = useContext(ThemeContext) || {};
+  const { theme, setTheme, darkTheme } = useContext(ThemeContext) || {};
   const command = useContext(CommandContext);
 
   return (
@@ -82,7 +82,7 @@ function Splash({ isOpen, setOpen }: SplashProps) {
         </label>
         <label>
           <div className="flex gap-2 items-center">
-            {theme === "dark" ? <MdDarkMode /> : <MdLightMode />}
+            {darkTheme ? <MdDarkMode /> : <MdLightMode />}
             <span>{t("theme.title")}</span>
           </div>
           <select

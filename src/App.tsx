@@ -27,7 +27,7 @@ import { useTranslation, initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { resources } from "./utils/i18n";
 
-import { updateTheme } from "tailwind-material-colors/lib/updateTheme.esm";
+import { updateTheme as updateScheme } from "tailwind-material-colors/lib/updateTheme.esm";
 import { colors } from "./utils/materialTheme";
 
 import { VscClose, VscDebugStop, VscPlay } from "react-icons/vsc";
@@ -48,6 +48,8 @@ import { sendStats } from "./utils/analytics";
 import { init, format } from "wastyle";
 import astyleBinaryUrl from "wastyle/dist/astyle.wasm?url";
 import { watchImmediate } from "tauri-plugin-fs-watch-api";
+
+init(astyleBinaryUrl);
 
 let zoomLevel = parseInt(localStorage.getItem("zoom")!) || 0;
 
@@ -82,6 +84,7 @@ interface IColorContext {
 interface ThemeContextType {
   theme: Theme;
   setTheme: Dispatch<SetStateAction<Theme>>;
+  darkTheme?: boolean;
 }
 
 export interface ICommand {
@@ -124,6 +127,7 @@ function App() {
   const [theme, setTheme] = useState<Theme>(
     (localStorage.getItem("theme") as Theme) || "system"
   );
+  const [darkTheme, setDarkTheme] = useState<boolean>();
 
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const [position, setPosition] = useState<monaco.Position>();
@@ -395,8 +399,7 @@ function App() {
 
   useEffect(() => {
     sendStats("start", { language: i18n.language, theme, color });
-    init(astyleBinaryUrl);
-    monaco.languages.registerDocumentFormattingEditProvider("cpp", {
+    monaco.languages.registerDocumentFormattingEditProvider(["c", "cpp"], {
       async provideDocumentFormattingEdits(model) {
         const [success, result] = format(model.getValue(), "pad-oper");
         log(`${t("status.formatting")}...`);
@@ -422,7 +425,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    updateTheme(
+    updateScheme(
       {
         primary: colors[color],
       },
@@ -431,28 +434,27 @@ function App() {
     localStorage.setItem("color", color);
   }, [color]);
 
+  const mediaQueryList = matchMedia("(prefers-color-scheme: dark)");
+  const resolvedTheme =
+    theme === "system" ? (mediaQueryList.matches ? "dark" : "light") : theme;
+
   useEffect(() => {
-    document.documentElement.className = theme;
-    document.documentElement.style.colorScheme = theme;
-    localStorage.setItem("theme", theme);
+    setDarkTheme(resolvedTheme === "dark");
+    if (theme === "system") {
+      localStorage.removeItem("theme");
+      mediaQueryList.onchange = () => setDarkTheme(mediaQueryList.matches);
+      return () => {
+        mediaQueryList.onchange = null;
+      };
+    } else {
+      localStorage.setItem("theme", theme);
+    }
   }, [theme]);
 
   useEffect(() => {
-    function handleMediaQueryChange(e: MediaQueryListEvent) {
-      if (e.matches) {
-        setTheme("dark");
-      } else {
-        setTheme("light");
-      }
-    }
-    if (theme === "system") {
-      const mediaQueryList = window.matchMedia("(prefers-color-scheme: dark)");
-      mediaQueryList.addEventListener("change", handleMediaQueryChange);
-      return () => {
-        mediaQueryList.removeEventListener("change", handleMediaQueryChange);
-      };
-    }
-  }, []);
+    document.documentElement.className = resolvedTheme;
+    document.documentElement.style.colorScheme = resolvedTheme;
+  }, [darkTheme]);
 
   useEffect(() => {
     console.log("currentProjectPath changed");
@@ -568,7 +570,7 @@ function App() {
 
   return (
     <ColorContext.Provider value={{ color, setColor }}>
-      <ThemeContext.Provider value={{ theme, setTheme }}>
+      <ThemeContext.Provider value={{ theme, setTheme, darkTheme }}>
         <CommandContext.Provider value={command}>
           <FileContext.Provider
             value={{
@@ -685,7 +687,7 @@ function App() {
                             openedFiles[currentFileIndex].language
                           }
                           value={openedFiles[currentFileIndex].value}
-                          theme={theme === "dark" ? "vs-dark" : "vs"}
+                          theme={darkTheme ? "vs-dark" : "vs"}
                           loading={`${t("loading")}...`}
                           onMount={(editor) => {
                             editor.onDidChangeCursorPosition((e) =>
