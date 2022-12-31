@@ -86,11 +86,7 @@ function File({ path, name, level = 0, folderPath, onCreate }: EntryProps) {
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={async (e) => {
               if (e.key === "Enter") {
-                if (e.currentTarget.value) {
-                  e.currentTarget.blur();
-                } else {
-                  alert("Nama tidak boleh kosong.");
-                }
+                e.currentTarget.blur();
               }
             }}
             onBlur={async (e) => {
@@ -101,12 +97,16 @@ function File({ path, name, level = 0, folderPath, onCreate }: EntryProps) {
                 );
                 if (onCreate) {
                   if (e.target.value) {
-                    await writeTextFile(newFilePath, "");
-                    open(newFilePath);
+                    if (!(await exists(newFilePath))) {
+                      await writeTextFile(newFilePath, "");
+                      open(newFilePath);
+                    } else {
+                      alert(t("explorer.renameError"));
+                    }
                   }
                   onCreate();
-                } else if (newName) {
-                  if (newName !== name) {
+                } else {
+                  if (newName && newName !== name) {
                     if (!(await exists(newFilePath))) {
                       renameFile(path, newFilePath);
                       setOpenedFiles!(
@@ -122,12 +122,13 @@ function File({ path, name, level = 0, folderPath, onCreate }: EntryProps) {
                           }
                         })
                       );
-                      setIsRenaming(false);
                     } else {
-                      alert("Terdapat file bernama sama.");
-                      e.target.focus();
+                      alert(t("explorer.renameError"));
                     }
+                  } else {
+                    setNewName(name);
                   }
+                  setIsRenaming(false);
                 }
               }
             }}

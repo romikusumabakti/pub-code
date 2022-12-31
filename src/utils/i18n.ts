@@ -87,6 +87,8 @@ export const resources = {
         rename: "Rename",
         delete: "Delete",
         deleteConfirm: "Are you sure you want to delete this file?",
+        renameError:
+          "There is already a file with the same name in this location.",
       },
       status: {
         reading: "Reading",
@@ -196,6 +198,7 @@ export const resources = {
         rename: "Ubah nama",
         delete: "Hapus",
         deleteConfirm: "Apakah Anda yakin ingin menghapus file ini?",
+        renameError: "Sudah ada file dengan nama yang sama di lokasi ini.",
       },
       status: {
         reading: "Membaca",

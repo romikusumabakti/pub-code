@@ -6,7 +6,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "pub-code",
+    "productName": "PUB Code",
     "version": "0.6.0-beta"
   },
   "tauri": {
