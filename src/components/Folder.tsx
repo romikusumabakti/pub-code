@@ -5,7 +5,7 @@ import File from "./File";
 import { watchImmediate } from "tauri-plugin-fs-watch-api";
 
 interface EntryProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  path?: string;
+  path: string;
   name?: string;
   level?: number;
   open?: boolean;
@@ -86,6 +86,7 @@ function Folder({ path, name, level = 0, open = false }: EntryProps) {
           <File
             path={path}
             level={level + 1}
+            folderPath={path}
             onCreate={() => setIsNewFile(false)}
           />
         ),
@@ -97,6 +98,7 @@ function Folder({ path, name, level = 0, open = false }: EntryProps) {
               path={child.path}
               name={child.name}
               level={level + 1}
+              folderPath={path}
             />
           )),
       ]}

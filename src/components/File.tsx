@@ -1,10 +1,11 @@
 import {
+  exists,
   readTextFile,
   removeFile,
   renameFile,
   writeTextFile,
 } from "@tauri-apps/api/fs";
-import { basename, dirname, extname, join } from "@tauri-apps/api/path";
+import { basename, extname, join } from "@tauri-apps/api/path";
 import { ButtonHTMLAttributes, useContext, useEffect, useState } from "react";
 import { FileContext } from "../App";
 import FileIcon from "./FileIcon";
@@ -16,10 +17,11 @@ interface EntryProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   path?: string;
   name?: string;
   level?: number;
+  folderPath: string;
   onCreate?: () => any;
 }
 
-function File({ path, name, level = 0, onCreate }: EntryProps) {
+function File({ path, name, level = 0, folderPath, onCreate }: EntryProps) {
   const { t } = useTranslation();
 
   const [newName, setNewName] = useState<string | undefined>(name);
@@ -84,35 +86,49 @@ function File({ path, name, level = 0, onCreate }: EntryProps) {
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={async (e) => {
               if (e.key === "Enter") {
-                e.currentTarget.blur();
+                if (e.currentTarget.value) {
+                  e.currentTarget.blur();
+                } else {
+                  alert("Nama tidak boleh kosong.");
+                }
               }
             }}
             onBlur={async (e) => {
-              if (onCreate) {
-                if (path && e.target.value) {
-                  const newFilePath = await join(path, e.target.value);
-                  await writeTextFile(newFilePath, "");
-                  open(newFilePath);
-                }
-                onCreate();
-              } else if (path && newName) {
-                const folderPath = await dirname(path);
-                const newPath = await join(folderPath, newName);
-                renameFile(path, newPath);
-                setOpenedFiles!(
-                  openedFiles!.map((file) => {
-                    if (file.path === path) {
-                      return {
-                        ...file,
-                        path: newPath,
-                        name: newName,
-                      };
-                    } else {
-                      return file;
-                    }
-                  })
+              if (path) {
+                const newFilePath = await join(
+                  folderPath,
+                  newName || e.target.value
                 );
-                setIsRenaming(false);
+                if (onCreate) {
+                  if (e.target.value) {
+                    await writeTextFile(newFilePath, "");
+                    open(newFilePath);
+                  }
+                  onCreate();
+                } else if (newName) {
+                  if (newName !== name) {
+                    if (!(await exists(newFilePath))) {
+                      renameFile(path, newFilePath);
+                      setOpenedFiles!(
+                        openedFiles!.map((file) => {
+                          if (file.path === path) {
+                            return {
+                              ...file,
+                              path: newFilePath,
+                              name: newName,
+                            };
+                          } else {
+                            return file;
+                          }
+                        })
+                      );
+                      setIsRenaming(false);
+                    } else {
+                      alert("Terdapat file bernama sama.");
+                      e.target.focus();
+                    }
+                  }
+                }
               }
             }}
           />

@@ -31,7 +31,7 @@ export function AboutFooter() {
         </Trans>
       </div>
       <div>
-        © 2022 <strong className="display">{t("pubEduDiv")}</strong>
+        © 2023 <strong className="display">{t("pubEduDiv")}</strong>
       </div>
     </div>
   );

@@ -49,6 +49,8 @@ import { init, format } from "wastyle";
 import astyleBinaryUrl from "wastyle/dist/astyle.wasm?url";
 import { watchImmediate } from "tauri-plugin-fs-watch-api";
 
+let stopWatching = async () => {};
+
 init(astyleBinaryUrl);
 
 let zoomLevel = parseInt(localStorage.getItem("zoom")!) || 0;
@@ -118,6 +120,8 @@ export const CommandContext = createContext<Record<string, ICommand>>({});
 export const FileContext = createContext<IFileContext | null>(null);
 
 loader.config({ monaco });
+
+let editingPath: string;
 
 function App() {
   const { i18n, t } = useTranslation();
@@ -256,6 +260,22 @@ function App() {
         if (typeof selected === "string") {
           setCurrentProjectPath(selected);
           setIsSplashOpen(false);
+          if (currentProjectPath && currentProjectConfig?.mainProgram) {
+            const mainProgramFileName = `${currentProjectConfig.mainProgram}.${currentProjectConfig.language}`;
+            join(currentProjectPath, mainProgramFileName).then(async (path) => {
+              log(
+                `${t("log.openMainProgramFile")} (${mainProgramFileName})...`
+              );
+              setOpenedFiles([
+                {
+                  path,
+                  name: await basename(path),
+                  language: await extname(path),
+                  value: await readTextFile(path),
+                },
+              ]);
+            });
+          }
         }
       },
       disabled: isOpenProjectOpen,
@@ -423,6 +443,25 @@ function App() {
     //     unregisterAll();
     //   }
     // });
+    Promise.all(
+      JSON.parse(localStorage.getItem("openedFiles") || "").map(
+        async (path: string) => {
+          const value = await readTextFile(path);
+          const language = await extname(path);
+          monaco.editor.createModel(
+            value,
+            "cpp",
+            monaco.Uri.parse(`file:///${path}`)
+          );
+          return {
+            path,
+            name: await basename(path),
+            language,
+            value,
+          };
+        }
+      )
+    ).then((openedFiles) => setOpenedFiles(openedFiles));
   }, []);
 
   useEffect(() => {
@@ -463,7 +502,6 @@ function App() {
   }, [darkTheme]);
 
   useEffect(() => {
-    console.log("currentProjectPath changed");
     if (currentProjectPath) {
       localStorage.setItem("currentProjectPath", currentProjectPath);
       readDir(currentProjectPath).then(async (entries) => {
@@ -491,57 +529,50 @@ function App() {
   }, [currentProjectPath]);
 
   useEffect(() => {
-    if (currentProjectPath && currentProjectConfig?.mainProgram) {
-      const mainProgramFileName = `${currentProjectConfig.mainProgram}.${currentProjectConfig.language}`;
-      join(currentProjectPath, mainProgramFileName).then(async (path) => {
-        log(`${t("log.openMainProgramFile")} (${mainProgramFileName})...`);
-        const name = await basename(path);
-        const value = await readTextFile(path);
-        setOpenedFiles([
-          {
-            path,
-            name,
-            language: "cpp",
-            value,
-          },
-        ]);
-      });
-    }
-  }, [currentProjectConfig]);
-
-  useEffect(() => {
-    if (currentFileIndex >= openedFiles.length) {
-      setCurrentFileIndex(0);
-    }
-    watchImmediate(
-      openedFiles.map((openedFile, i) => openedFile.path),
-      { recursive: false },
-      async (e) => {
-        if (e.operation === 4 || e.operation === 4) {
-          setOpenedFiles(
-            openedFiles.filter((openedFile) => openedFile.path !== e.path)
-          );
-        } else if (
-          e.path &&
-          e.operation === 16 &&
-          e.path !== openedFiles[currentFileIndex].path
-        ) {
-          const value = await readTextFile(e.path);
-          setOpenedFiles(
-            openedFiles.map((openedFile) => {
-              if (openedFile.path === e.path) {
-                return { ...openedFile, value };
-              } else {
-                return openedFile;
-              }
-            })
-          );
-        }
+    if (openedFiles.length > 0) {
+      localStorage.setItem(
+        "openedFiles",
+        JSON.stringify(openedFiles.map((openedFile) => openedFile.path))
+      );
+      if (currentFileIndex === openedFiles.length) {
+        setCurrentFileIndex(openedFiles.length - 1);
       }
-    );
+    }
   }, [openedFiles]);
 
   useEffect(() => {
+    editingPath = "";
+    watchImmediate(
+      openedFiles.map((openedFile) => openedFile.path),
+      { recursive: false },
+      async (e) => {
+        if (e.path) {
+          if (e.operation === 4 || e.operation === 4) {
+            setOpenedFiles(
+              openedFiles.filter((openedFile) => openedFile.path !== e.path)
+            );
+          } else if (e.operation === 16) {
+            const value = await readTextFile(e.path);
+            // setOpenedFiles(
+            //   openedFiles.map((openedFile) => {
+            //     if (openedFile.path === e.path) {
+            //       return { ...openedFile, value };
+            //     } else {
+            //       return openedFile;
+            //     }
+            //   })
+            // );
+            if (e.path !== editingPath) {
+              monaco.editor.getModels().forEach((model) => {
+                if (e.path && model.uri.path.endsWith(e.path)) {
+                  model.setValue(value);
+                }
+              });
+            }
+          }
+        }
+      }
+    ).then((watch) => (stopWatching = watch));
     onkeydown = (e) => {
       if (
         e.key !== "F5" &&
@@ -564,11 +595,11 @@ function App() {
             }
           }
         }
-        // Object.values(command).map((command) => {});
       }
     };
     // registerAllcommand();
     return () => {
+      stopWatching();
       onkeydown = null;
       // unregisterAll();
     };
@@ -637,17 +668,16 @@ function App() {
                         }`}
                       >
                         <span className="flex flex-grow gap-[1px]">
-                          {openedFiles.map((file, index) => (
+                          {openedFiles.map((file, i) => (
                             <span
-                              key={index}
+                              key={i}
                               className={`button px-3 flex items-center gap-2 bg-surface1 rounded-t-lg max-w-xs ${
-                                index === currentFileIndex &&
-                                "!bg-none !bg-surface"
+                                i === currentFileIndex && "!bg-none !bg-surface"
                               }`}
                               style={{
                                 width: `${(1 / openedFiles.length) * 100}%`,
                               }}
-                              onClick={() => setCurrentFileIndex(index)}
+                              onClick={() => setCurrentFileIndex(i)}
                               title={file.path}
                             >
                               <FileIcon name={file.name} />
@@ -656,60 +686,65 @@ function App() {
                               </span>
                               <button
                                 className="w-6 h-6 rounded-full flex justify-center text-xl -mr-1"
-                                onClick={() => {
+                                onClick={() =>
                                   setOpenedFiles(
                                     openedFiles.filter(
                                       (f) => f.path !== file.path
                                     )
-                                  );
-                                }}
+                                  )
+                                }
                               >
                                 <VscClose />
                               </button>
                             </span>
                           ))}
                         </span>
-                        {!command.runFile.disabled &&
-                          (isBuilding || debuggingChild !== undefined ? (
-                            <button
-                              className="flex gap-2 px-4 text-primary"
-                              onClick={command.stop.action}
-                            >
-                              <VscDebugStop />
-                              {t("command.stop")}
-                            </button>
-                          ) : (
-                            <button
-                              className="flex gap-2 px-4 text-primary"
-                              onClick={command.runFile.action}
-                            >
-                              <VscPlay />
-                              {t("command.runFile")}
-                            </button>
-                          ))}
+                        <span className="flex justify-end w-48">
+                          {!command.runFile.disabled &&
+                            (isBuilding || debuggingChild !== undefined ? (
+                              <button
+                                className="flex gap-2 px-4 text-primary"
+                                onClick={command.stop.action}
+                              >
+                                <VscDebugStop />
+                                {t("command.stop")}
+                              </button>
+                            ) : (
+                              <button
+                                className="flex gap-2 px-4 text-primary"
+                                onClick={command.runFile.action}
+                              >
+                                <VscPlay />
+                                {t("command.runFile")}
+                              </button>
+                            ))}
+                        </span>
                       </div>
                       {currentFileIndex < openedFiles.length && (
                         <Editor
-                          path={openedFiles[currentFileIndex].path}
+                          path={`file:///${openedFiles[currentFileIndex].path}`}
                           defaultLanguage={
                             openedFiles[currentFileIndex].language
                           }
-                          value={openedFiles[currentFileIndex].value}
+                          defaultValue={openedFiles[currentFileIndex].value}
                           theme={darkTheme ? "vs-dark" : "vs"}
                           loading={`${t("loading")}...`}
                           onMount={(editor) => {
                             editor.onDidChangeCursorPosition((e) =>
                               setPosition(e.position)
                             );
+                            editor.onDidChangeModelContent(async (e) => {
+                              if (!e.isFlush) {
+                                editingPath = editor
+                                  .getModel()
+                                  ?.uri.path.substring(1) as string;
+                                await writeTextFile(
+                                  editingPath,
+                                  editor.getValue()
+                                );
+                              }
+                            });
                             editorRef.current = editor;
-                          }}
-                          onChange={async (value) => {
-                            if (value) {
-                              await writeTextFile(
-                                openedFiles[currentFileIndex].path,
-                                value
-                              );
-                            }
                           }}
                         />
                       )}
