@@ -11,16 +11,16 @@ import { FileContext, ICommand, ThemeContext } from "../App";
 import { useTranslation } from "react-i18next";
 
 interface TitleBarProps {
-  currentProjectPath?: string;
   menu: ICommand[];
 }
 
-function TitleBar({ currentProjectPath, menu }: TitleBarProps) {
+function TitleBar({ menu }: TitleBarProps) {
   const { i18n } = useTranslation();
   const { theme, setTheme, darkTheme, darkThemeMediaQueryList } =
     useContext(ThemeContext) || {};
   const [isMaximized, setIsMaximized] = useState<boolean>();
-  const { openedFiles, currentFileIndex } = useContext(FileContext) || {};
+  const { currentProjectPath, openedFiles, currentFileIndex } =
+    useContext(FileContext) || {};
 
   async function updateIsMaximized() {
     const isMaximized = await appWindow.isMaximized();

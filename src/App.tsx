@@ -83,7 +83,7 @@ interface IColorContext {
   setColor: Dispatch<SetStateAction<string>>;
 }
 
-interface ThemeContextType {
+interface IThemeContext {
   theme: Theme;
   setTheme: Dispatch<SetStateAction<Theme>>;
   darkTheme?: boolean;
@@ -105,6 +105,7 @@ interface File {
 }
 
 interface IFileContext {
+  currentProjectPath: string;
   openedFiles: File[];
   setOpenedFiles: Dispatch<SetStateAction<File[]>>;
   currentFileIndex: number;
@@ -112,7 +113,7 @@ interface IFileContext {
 }
 
 export const ColorContext = createContext<IColorContext | null>(null);
-export const ThemeContext = createContext<ThemeContextType>({
+export const ThemeContext = createContext<IThemeContext>({
   theme: "system",
   setTheme: () => null,
 });
@@ -122,6 +123,7 @@ export const FileContext = createContext<IFileContext | null>(null);
 loader.config({ monaco });
 
 let editingPath: string;
+let currentProjectConfig: Record<string, string>;
 
 function App() {
   const { i18n, t } = useTranslation();
@@ -147,11 +149,9 @@ function App() {
     localStorage.getItem("currentProjectPath")!
   );
   const [entries, setEntries] = useState<FileEntry[]>([]);
-  const [currentProjectConfig, setCurrentProjectConfig] =
-    useState<Record<string, string>>();
   const [openedFiles, setOpenedFiles] = useState<File[]>([]);
   const [currentFileIndex, setCurrentFileIndex] = useState<number>(
-    parseInt(localStorage.getItem("currentFileIndex")!)
+    parseInt(localStorage.getItem("currentFileIndex")!) || 0
   );
 
   const [isNewProjectOpen, setIsNewProjectOpen] = useState<boolean>(false);
@@ -167,6 +167,40 @@ function App() {
       logRef.current.value += data + "\n";
       logRef.current?.scrollTo(0, logRef.current.scrollHeight);
     }
+  }
+
+  async function openProject(path: string) {
+    localStorage.setItem("currentProjectPath", path);
+    const entries = await readDir(path);
+    setEntries([
+      {
+        path,
+        name: path.substring(path.lastIndexOf("\\") + 1),
+        children: entries,
+      },
+    ]);
+    const configFileName = "pub-code.json";
+    const pubCodeJson = entries.find((entry) => entry.name === configFileName);
+    if (logRef.current && pubCodeJson) {
+      logRef.current.value = "";
+      log(`${t("status.reading")} ${configFileName}...`);
+      const contents = await readTextFile(pubCodeJson.path);
+      currentProjectConfig = JSON.parse(contents);
+    }
+  }
+
+  async function openMainProgram(projectPath: string) {
+    const mainProgramFileName = `${currentProjectConfig.mainProgram}.${currentProjectConfig.language}`;
+    const path = await join(projectPath, mainProgramFileName);
+    log(`${t("log.openMainProgramFile")} (${mainProgramFileName})...`);
+    setOpenedFiles([
+      {
+        path,
+        name: await basename(path),
+        language: await extname(path),
+        value: await readTextFile(path),
+      },
+    ]);
   }
 
   async function build(sourcePath: string, callback?: Function) {
@@ -260,24 +294,14 @@ function App() {
         });
         setIsOpenProjectOpen(false);
         if (typeof selected === "string") {
-          setCurrentProjectPath(selected);
+          await openProject(selected);
           setIsSplashOpen(false);
-          if (currentProjectPath && currentProjectConfig?.mainProgram) {
-            const mainProgramFileName = `${currentProjectConfig.mainProgram}.${currentProjectConfig.language}`;
-            join(currentProjectPath, mainProgramFileName).then(async (path) => {
-              log(
-                `${t("log.openMainProgramFile")} (${mainProgramFileName})...`
-              );
-              setOpenedFiles([
-                {
-                  path,
-                  name: await basename(path),
-                  language: await extname(path),
-                  value: await readTextFile(path),
-                },
-              ]);
-            });
+          if (currentProjectConfig?.mainProgram) {
+            openMainProgram(selected);
+          } else {
+            setOpenedFiles([]);
           }
+          setCurrentProjectPath(selected);
         }
       },
       disabled: isOpenProjectOpen,
@@ -445,8 +469,12 @@ function App() {
     //     unregisterAll();
     //   }
     // });
+    const currentProjectPath = localStorage.getItem("currentProjectPath");
+    if (currentProjectPath) {
+      openProject(currentProjectPath);
+    }
     Promise.all(
-      JSON.parse(localStorage.getItem("openedFiles") || "").map(
+      JSON.parse(localStorage.getItem("openedFiles") || "[]").map(
         async (path: string) => {
           const value = await readTextFile(path);
           const language = await extname(path);
@@ -502,33 +530,6 @@ function App() {
     document.documentElement.className = resolvedTheme;
     document.documentElement.style.colorScheme = resolvedTheme;
   }, [darkTheme]);
-
-  useEffect(() => {
-    if (currentProjectPath) {
-      localStorage.setItem("currentProjectPath", currentProjectPath);
-      readDir(currentProjectPath).then(async (entries) => {
-        setEntries([
-          {
-            path: currentProjectPath,
-            name: currentProjectPath.substring(
-              currentProjectPath.lastIndexOf("\\") + 1
-            ),
-            children: entries,
-          },
-        ]);
-        const configFileName = "pub-code.json";
-        const pubCodeJson = entries.find(
-          (entry) => entry.name === configFileName
-        );
-        if (logRef.current && pubCodeJson) {
-          logRef.current.value = "";
-          log(`${t("status.reading")} ${configFileName}...`);
-          const contents = await readTextFile(pubCodeJson.path);
-          setCurrentProjectConfig(JSON.parse(contents));
-        }
-      });
-    }
-  }, [currentProjectPath]);
 
   useEffect(() => {
     if (openedFiles.length > 0) {
@@ -616,6 +617,7 @@ function App() {
         <CommandContext.Provider value={command}>
           <FileContext.Provider
             value={{
+              currentProjectPath,
               openedFiles,
               setOpenedFiles,
               currentFileIndex,
@@ -624,7 +626,6 @@ function App() {
           >
             <div className="flex flex-col h-screen bg-surface1 text-on-surface">
               <TitleBar
-                currentProjectPath={currentProjectPath}
                 menu={[
                   command.new,
                   command.open,
@@ -784,6 +785,7 @@ function App() {
                   onCreate={(location: string) => {
                     setCurrentProjectPath(location);
                     setIsSplashOpen(false);
+                    openMainProgram(location);
                   }}
                 />
                 <About isOpen={isAboutOpen} setIsOpen={setIsAboutOpen} />
