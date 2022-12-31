@@ -67,7 +67,7 @@ function TitleBar({ currentProjectPath, menu }: TitleBarProps) {
       >
         {[
           openedFiles &&
-            currentFileIndex &&
+            typeof currentFileIndex === "number" &&
             openedFiles.length > 0 &&
             openedFiles[currentFileIndex]?.name,
           currentProjectPath?.substring(

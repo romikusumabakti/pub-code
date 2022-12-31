@@ -150,7 +150,9 @@ function App() {
   const [currentProjectConfig, setCurrentProjectConfig] =
     useState<Record<string, string>>();
   const [openedFiles, setOpenedFiles] = useState<File[]>([]);
-  const [currentFileIndex, setCurrentFileIndex] = useState<number>(0);
+  const [currentFileIndex, setCurrentFileIndex] = useState<number>(
+    parseInt(localStorage.getItem("currentFileIndex")!)
+  );
 
   const [isNewProjectOpen, setIsNewProjectOpen] = useState<boolean>(false);
   const [isOpenProjectOpen, setIsOpenProjectOpen] = useState<boolean>(false);
@@ -542,6 +544,7 @@ function App() {
 
   useEffect(() => {
     editingPath = "";
+    localStorage.setItem("currentFileIndex", currentFileIndex.toString());
     watchImmediate(
       openedFiles.map((openedFile) => openedFile.path),
       { recursive: false },
