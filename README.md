@@ -16,12 +16,12 @@ PUB Code (pronounced `/pé u bé koʊd/`) is a fast, simple, and open source C/C
 - Dark theme support
 - Color scheme ([Material Design 3](https://m3.material.io/))
 
-## Languages
+## 🌐 Languages
 
 - English
 - Bahasa Indonesia
 
-## Third party libraries
+## 📦 Third party libraries
 
 - [Tauri](https://tauri.app/) (desktop app framework)
 - [Monaco Editor](https://microsoft.github.io/monaco-editor/) (code editor)
@@ -30,6 +30,6 @@ PUB Code (pronounced `/pé u bé koʊd/`) is a fast, simple, and open source C/C
 - [Tailwind CSS](https://tailwindcss.com/) (UI styling)
 - [Vite](https://vitejs.dev/) (UI build tool)
 
-## License
+## 🪪 License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

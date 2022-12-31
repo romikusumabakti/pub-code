@@ -5,7 +5,7 @@
 #define AppVersion "0.6.0"
 #define AppPublisher "PUB Education Division"
 #define AppURL "https://portal.pubpasim.org/code"
-#define AppExeName "pub-code.exe"
+#define AppExeName "PUB Code.exe"
 #define AppAssocName "Source Code File"
 #define AppAssocExt ".c"
 #define AppAssocKey StringChange(AppAssocName, " ", "") + AppAssocExt
