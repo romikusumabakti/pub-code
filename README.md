@@ -23,6 +23,17 @@ PUB Code (pronounced `/pé u bé koʊd/`) is a fast, simple, and open source C/C
 - English
 - Bahasa Indonesia
 
+## 💾 Installation
+
+To install PUB Code on your computer, follow these steps:
+
+1. Make sure you have [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) installed on your computer.
+2. Download the latest version of PUB Code from the [releases page](https://github.com/romikusumabakti/pub-code/releases).
+3. Run the installer and follow the prompts to install PUB Code on your computer.
+4. Once the installation is complete, you can launch PUB Code from the Start menu or by double-clicking the PUB Code shortcut on your desktop.
+
+> On Windows 10 (April 2018 release or later) and Windows 11, the WebView2 runtime is distributed as part of the operating system.
+
 ## 📦 Third party libraries
 
 - [Tauri](https://tauri.app/) (desktop app framework)
@@ -32,6 +43,6 @@ PUB Code (pronounced `/pé u bé koʊd/`) is a fast, simple, and open source C/C
 - [Tailwind CSS](https://tailwindcss.com/) (UI styling)
 - [Vite](https://vitejs.dev/) (UI build tool)
 
-## 🪪 License
+## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

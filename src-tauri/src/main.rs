@@ -6,7 +6,7 @@
 use tauri::Manager;
 use tauri_plugin_fs_watch::Watcher;
 use window_shadows::set_shadow;
-use window_vibrancy::apply_mica;
+// use window_vibrancy::apply_mica;
 
 extern crate machine_uid;
 
@@ -36,7 +36,7 @@ fn main() {
         .setup(|app| {
             let window = app.get_window("main").unwrap();
             set_shadow(&window, true).unwrap();
-            apply_mica(&window).unwrap();
+            // apply_mica(&window).unwrap();
             Ok(())
         })
         .plugin(Watcher::default())

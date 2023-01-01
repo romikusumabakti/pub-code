@@ -19,7 +19,7 @@ serde = { version = "1.0", features = ["derive"] }
 tauri = {version = "1.2", features = ["api-all"] }
 tauri-plugin-window-state = "0.1.0"
 window-shadows = "0.2.0"
-window-vibrancy = "0.3.2"
+# window-vibrancy = "0.3.2"
 machine-uid = "0.2.0"
 tauri-plugin-fs-watch = { git = "https://github.com/tauri-apps/tauri-plugin-fs-watch" }
 

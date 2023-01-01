@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define AppName "PUB Code"
-#define AppVersion "0.6.0"
+#define AppVersion "0.6.1"
 #define AppPublisher "PUB Education Division"
 #define AppURL "https://portal.pubpasim.org/code"
 #define AppExeName "PUB Code.exe"
