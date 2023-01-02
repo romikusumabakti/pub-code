@@ -544,7 +544,7 @@ function App() {
         "openedFiles",
         JSON.stringify(openedFiles.map((openedFile) => openedFile.path))
       );
-      if (currentFileIndex === openedFiles.length) {
+      if (currentFileIndex >= openedFiles.length) {
         setCurrentFileIndex(openedFiles.length - 1);
       }
     }
@@ -812,10 +812,11 @@ function App() {
                 <NewProject
                   isOpen={isNewProjectOpen}
                   setIsOpen={setIsNewProjectOpen}
-                  onCreate={(location: string) => {
-                    setCurrentProjectPath(location);
+                  onCreate={async (location: string) => {
+                    await openProject(location);
                     setIsSplashOpen(false);
                     openMainProgram(location);
+                    setCurrentProjectPath(location);
                   }}
                 />
                 <About isOpen={isAboutOpen} setIsOpen={setIsAboutOpen} />
