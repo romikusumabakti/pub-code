@@ -738,7 +738,7 @@ function App() {
                             </Fragment>
                           ))}
                         </span>
-                        <span className="flex justify-end w-32 shrink-0">
+                        <span className="flex justify-end w-40 shrink-0">
                           {!command.runFile.disabled &&
                             (isBuilding || debuggingChild !== undefined ? (
                               <button
