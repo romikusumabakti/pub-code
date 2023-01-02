@@ -104,10 +104,19 @@ function Splash({ isOpen, setOpen }: SplashProps) {
         <Button variant="tonal" onClick={command.about.action}>
           {t("command.about")}
         </Button>
-        <Button className="ml-auto" onClick={command.new.action}>
+        <Button
+          className="ml-auto"
+          onClick={command.new.action}
+          title={command.new.shortcut?.replace("CommandOrControl", "Ctrl")}
+        >
           {t("command.new")}
         </Button>
-        <Button onClick={command.open.action}>{t("command.open")}</Button>
+        <Button
+          onClick={command.open.action}
+          title={command.open.shortcut?.replace("CommandOrControl", "Ctrl")}
+        >
+          {t("command.open")}
+        </Button>
       </span>
       <button
         className="w-10 h-10 rounded-full text-2xl ml-auto flex items-center justify-center absolute top-6 right-6"

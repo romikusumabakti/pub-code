@@ -1,6 +1,7 @@
 import {
   createContext,
   Dispatch,
+  Fragment,
   SetStateAction,
   useEffect,
   useRef,
@@ -203,6 +204,15 @@ function App() {
     ]);
   }
 
+  async function save() {
+    if (editorRef.current) {
+      editingPath = editorRef.current
+        .getModel()
+        ?.uri.path.substring(1) as string;
+      await writeTextFile(editingPath, editorRef.current.getValue());
+    }
+  }
+
   async function build(sourcePath: string, callback?: Function) {
     if (logRef.current) {
       setIsBuilding(true);
@@ -318,10 +328,7 @@ function App() {
           setIsSaving(true);
           log(`${t("status.saving")}...`);
           setStatus(`${t("status.saving")}...`);
-          await writeTextFile(
-            openedFiles[currentFileIndex].path,
-            editorRef.current.getValue()
-          );
+          await save();
           log(`${t("log.fileSaved")} (${openedFiles[currentFileIndex].path}).`);
           setIsSaving(false);
           setStatus("");
@@ -359,7 +366,7 @@ function App() {
     },
     runFile: {
       title: t("command.runFile"),
-      shortcut: "Alt+R",
+      shortcut: "CommandOrControl+Shift+R",
       action: () => {
         if (openedFiles.length > 0) {
           build(openedFiles[currentFileIndex].path, (binaryPath: string) =>
@@ -583,17 +590,26 @@ function App() {
         ((e.ctrlKey &&
           e.key.toLowerCase() !== "c" &&
           e.key.toLowerCase() !== "v") ||
-          e.altKey)
+          e.shiftKey)
       ) {
         e.preventDefault();
         for (let key in command) {
-          if (command[key].shortcut) {
-            const buttons = command[key].shortcut!.split("+");
-            if (
-              ((buttons[0] === "CommandOrControl" && e.ctrlKey) ||
-                (buttons[0] === "Alt" && e.altKey)) &&
-              buttons[1].toLowerCase() === e.key.toLowerCase()
-            ) {
+          if (
+            command[key].shortcut &&
+            e.key !== "Control" &&
+            e.key !== "SHIFT"
+          ) {
+            const buttons: string[] = [];
+            if (e.ctrlKey) {
+              buttons.push("CommandOrControl");
+            }
+            if (e.shiftKey) {
+              buttons.push("Shift");
+            }
+            if (e.key) {
+              buttons.push(e.key.toUpperCase());
+            }
+            if (buttons.join("+") === command[key].shortcut) {
               command[key].action();
               break;
             }
@@ -671,39 +687,58 @@ function App() {
                           openedFiles.length > 0 && "bg-surface1"
                         }`}
                       >
-                        <span className="flex flex-grow gap-[1px]">
+                        <span className="flex flex-grow overflow-x-auto overflow-y-clip [&>*]:shrink-0">
                           {openedFiles.map((file, i) => (
-                            <span
-                              key={i}
-                              className={`button px-3 flex items-center gap-2 bg-surface1 rounded-t-lg max-w-xs ${
-                                i === currentFileIndex && "!bg-none !bg-surface"
-                              }`}
-                              style={{
-                                width: `${(1 / openedFiles.length) * 100}%`,
-                              }}
-                              onClick={() => setCurrentFileIndex(i)}
-                              title={file.path}
-                            >
-                              <FileIcon name={file.name} />
-                              <span className="flex-grow whitespace-nowrap overflow-ellipsis overflow-hidden">
-                                {file.name}
-                              </span>
-                              <button
-                                className="w-6 h-6 rounded-full flex justify-center text-xl -mr-1"
-                                onClick={() =>
-                                  setOpenedFiles(
-                                    openedFiles.filter(
-                                      (f) => f.path !== file.path
-                                    )
-                                  )
-                                }
+                            <Fragment key={i}>
+                              {i === 0 && (
+                                <span
+                                  className={`w-[1px] h-6 self-center ${
+                                    i !== currentFileIndex &&
+                                    "bg-outline-variant"
+                                  }`}
+                                ></span>
+                              )}
+                              <span
+                                className={`button px-3 flex items-center gap-2 bg-surface1 min-w-[128px] max-w-xs rounded-t-lg ${
+                                  i === currentFileIndex &&
+                                  "!bg-none !bg-surface"
+                                }`}
+                                style={{
+                                  width: `calc(${
+                                    (1 / openedFiles.length) * 100
+                                  }% - 2px`,
+                                }}
+                                onClick={() => setCurrentFileIndex(i)}
+                                title={file.path}
                               >
-                                <VscClose />
-                              </button>
-                            </span>
+                                <FileIcon name={file.name} />
+                                <span className="grow whitespace-nowrap overflow-ellipsis overflow-hidden">
+                                  {file.name}
+                                </span>
+                                <button
+                                  className="w-6 h-6 rounded-full flex justify-center text-xl -mr-1"
+                                  onClick={() =>
+                                    setOpenedFiles(
+                                      openedFiles.filter(
+                                        (f) => f.path !== file.path
+                                      )
+                                    )
+                                  }
+                                >
+                                  <VscClose />
+                                </button>
+                              </span>
+                              <span
+                                className={`w-[1px] h-6 self-center ${
+                                  i !== currentFileIndex &&
+                                  i !== currentFileIndex - 1 &&
+                                  "bg-outline-variant"
+                                }`}
+                              ></span>
+                            </Fragment>
                           ))}
                         </span>
-                        <span className="flex justify-end w-48">
+                        <span className="flex justify-end w-32 shrink-0">
                           {!command.runFile.disabled &&
                             (isBuilding || debuggingChild !== undefined ? (
                               <button
@@ -717,6 +752,7 @@ function App() {
                               <button
                                 className="flex gap-2 px-4 text-primary"
                                 onClick={command.runFile.action}
+                                title={command.runFile.shortcut}
                               >
                                 <VscPlay />
                                 {t("command.runFile")}
@@ -739,13 +775,7 @@ function App() {
                             );
                             editor.onDidChangeModelContent(async (e) => {
                               if (!e.isFlush) {
-                                editingPath = editor
-                                  .getModel()
-                                  ?.uri.path.substring(1) as string;
-                                await writeTextFile(
-                                  editingPath,
-                                  editor.getValue()
-                                );
+                                await save();
                               }
                             });
                             editorRef.current = editor;
