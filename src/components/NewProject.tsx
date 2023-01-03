@@ -85,7 +85,7 @@ function NewProject({ isOpen, setIsOpen, onCreate }: NewProjectProps) {
         while (true) {
           const projectName = `project-${projectNumber}`;
           const projectPath = await join(pubCodePath, projectName);
-          if ((await exists(projectPath)) as unknown) {
+          if (await exists(projectPath)) {
             projectNumber++;
           } else {
             setConfiguration({
@@ -111,38 +111,44 @@ function NewProject({ isOpen, setIsOpen, onCreate }: NewProjectProps) {
         onSubmit={async (e) => {
           e.preventDefault();
           const projectPath = await join(location, configuration.name);
-          await createDir(await join(projectPath, "build"), {
-            recursive: true,
-          });
-          await writeTextFile(
-            await join(projectPath, "pub-code.json"),
-            JSON.stringify(configuration, null, 2)
-          );
-          const mainProgramPath = await join(
-            projectPath,
-            `${configuration.mainProgram}.${configuration.language}`
-          );
-          if (initConui) {
-            await writeTextFile(
-              mainProgramPath,
-              initHelloWorld ? helloWorldWithConui[configuration.language] : ""
-            );
-            await createDir(await join(projectPath, "libs"), {
+          if (!exists(projectPath)) {
+            await createDir(await join(projectPath, "build"), {
               recursive: true,
             });
             await writeTextFile(
-              await join(projectPath, "libs", "conui.h"),
-              conuiH
+              await join(projectPath, "pub-code.json"),
+              JSON.stringify(configuration, null, 2)
             );
+            const mainProgramPath = await join(
+              projectPath,
+              `${configuration.mainProgram}.${configuration.language}`
+            );
+            if (initConui) {
+              await writeTextFile(
+                mainProgramPath,
+                initHelloWorld
+                  ? helloWorldWithConui[configuration.language]
+                  : ""
+              );
+              await createDir(await join(projectPath, "libs"), {
+                recursive: true,
+              });
+              await writeTextFile(
+                await join(projectPath, "libs", "conui.h"),
+                conuiH
+              );
+            } else {
+              await writeTextFile(
+                mainProgramPath,
+                initHelloWorld ? helloWorld[configuration.language] : ""
+              );
+            }
+            onCreate(projectPath);
+            setIsOpen(false);
+            sendStats("create_project", configuration);
           } else {
-            await writeTextFile(
-              mainProgramPath,
-              initHelloWorld ? helloWorld[configuration.language] : ""
-            );
+            alert(t("newProject.nameError"));
           }
-          onCreate(projectPath);
-          setIsOpen(false);
-          sendStats("create_project", configuration);
         }}
       >
         <div className="flex flex-col divide-y divide-outline">

@@ -24,4 +24,9 @@ export default defineConfig({
     // produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_DEBUG,
   },
+  esbuild: {
+    supported: {
+      "top-level-await": true,
+    },
+  },
 });

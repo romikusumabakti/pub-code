@@ -23,6 +23,8 @@ export const resources = {
         mainProgram: "Main program",
         compilerPath: "Compiler path",
         initialize: "Initialize",
+        nameError:
+          "There is already a folder with the same name in this location.",
       },
       command: {
         new: "New",
@@ -87,7 +89,7 @@ export const resources = {
         rename: "Rename",
         delete: "Delete",
         deleteConfirm: "Are you sure you want to delete this file?",
-        renameError:
+        nameError:
           "There is already a file with the same name in this location.",
       },
       status: {
@@ -134,6 +136,7 @@ export const resources = {
         mainProgram: "Program utama",
         compilerPath: "Jalur compiler",
         initialize: "Inisialisasi",
+        nameError: "Sudah ada folder dengan nama yang sama di lokasi ini.",
       },
       command: {
         new: "Baru",
@@ -198,7 +201,7 @@ export const resources = {
         rename: "Ubah nama",
         delete: "Hapus",
         deleteConfirm: "Apakah Anda yakin ingin menghapus file ini?",
-        renameError: "Sudah ada file dengan nama yang sama di lokasi ini.",
+        nameError: "Sudah ada file dengan nama yang sama di lokasi ini.",
       },
       status: {
         reading: "Membaca",

@@ -101,7 +101,7 @@ function File({ path, name, level = 0, folderPath, onCreate }: EntryProps) {
                       await writeTextFile(newFilePath, "");
                       open(newFilePath);
                     } else {
-                      alert(t("explorer.renameError"));
+                      alert(t("explorer.nameError"));
                     }
                   }
                   onCreate();
@@ -123,7 +123,7 @@ function File({ path, name, level = 0, folderPath, onCreate }: EntryProps) {
                         })
                       );
                     } else {
-                      alert(t("explorer.renameError"));
+                      alert(t("explorer.nameError"));
                     }
                   } else {
                     setNewName(name);

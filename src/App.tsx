@@ -124,7 +124,26 @@ export const FileContext = createContext<IFileContext | null>(null);
 loader.config({ monaco });
 
 let editingPath: string;
-let currentProjectConfig: Record<string, string>;
+
+const storedOpenedFiles = await Promise.all(
+  JSON.parse(localStorage.getItem("openedFiles") || "[]").map(
+    async (path: string) => {
+      const value = await readTextFile(path);
+      const language = await extname(path);
+      monaco.editor.createModel(
+        value,
+        language,
+        monaco.Uri.parse(`file:///${path}`)
+      );
+      return {
+        path,
+        name: await basename(path),
+        language,
+        value,
+      };
+    }
+  )
+);
 
 function App() {
   const { i18n, t } = useTranslation();
@@ -149,8 +168,11 @@ function App() {
   const [currentProjectPath, setCurrentProjectPath] = useState<string>(
     localStorage.getItem("currentProjectPath")!
   );
+  const [currentProjectConfig, setCurrentProjectConfig] = useState<
+    Record<string, string>
+  >({});
   const [entries, setEntries] = useState<FileEntry[]>([]);
-  const [openedFiles, setOpenedFiles] = useState<File[]>([]);
+  const [openedFiles, setOpenedFiles] = useState<File[]>(storedOpenedFiles);
   const [currentFileIndex, setCurrentFileIndex] = useState<number>(
     parseInt(localStorage.getItem("currentFileIndex")!) || 0
   );
@@ -186,7 +208,7 @@ function App() {
       logRef.current.value = "";
       log(`${t("status.reading")} ${configFileName}...`);
       const contents = await readTextFile(pubCodeJson.path);
-      currentProjectConfig = JSON.parse(contents);
+      setCurrentProjectConfig(JSON.parse(contents));
     }
   }
 
@@ -219,7 +241,7 @@ function App() {
       log(`${t("status.compiling")}...`);
       setStatus(`${t("status.compiling")}...`);
       const buildFolderPath = await join(currentProjectPath, "build");
-      if (!((await exists(buildFolderPath)) as unknown)) {
+      if (!(await exists(buildFolderPath))) {
         await createDir(buildFolderPath, {
           recursive: true,
         });
@@ -227,7 +249,7 @@ function App() {
       const language = await extname(sourcePath);
       const program = await basename(
         sourcePath,
-        `.${currentProjectConfig?.language || language}`
+        `.${currentProjectConfig.language || language}`
       );
       const binaryPath = await join(
         currentProjectPath,
@@ -247,19 +269,21 @@ function App() {
         log(data);
       });
       command.on("close", async (data) => {
+        setDebuggingChild(undefined);
         setStatus("");
         if (data.code === 0) {
           sendStats("build");
           log(`${t("log.compilation.finished")} (${binaryPath}).`);
-          await callback!(binaryPath);
+          if (typeof callback === "function") {
+            await callback(binaryPath);
+          }
         } else {
           setIsLogOpen(true);
           log(`${t("log.compilation.failed")}.`);
-          callback!();
         }
         setIsBuilding(false);
       });
-      command.spawn();
+      setDebuggingChild(await command.spawn());
     }
   }
 
@@ -306,7 +330,7 @@ function App() {
         if (typeof selected === "string") {
           await openProject(selected);
           setIsSplashOpen(false);
-          if (currentProjectConfig?.mainProgram) {
+          if (currentProjectConfig.mainProgram) {
             openMainProgram(selected);
           } else {
             setOpenedFiles([]);
@@ -322,9 +346,13 @@ function App() {
       action: async (callback: Function) => {
         if (logRef.current && editorRef.current && openedFiles.length > 0) {
           logRef.current.value = "";
-          await editorRef.current
-            .getAction("editor.action.formatDocument")
-            .run();
+          try {
+            await editorRef.current
+              .getAction("editor.action.formatDocument")
+              .run();
+          } catch (e) {
+            console.error(e);
+          }
           setIsSaving(true);
           log(`${t("status.saving")}...`);
           setStatus(`${t("status.saving")}...`);
@@ -351,16 +379,15 @@ function App() {
           build(sourcePath, callback);
         }
       },
-      disabled: !currentProjectConfig?.mainProgram || isBuilding,
+      disabled: !currentProjectConfig.mainProgram || isBuilding,
     },
     run: {
       title: t("command.run"),
       shortcut: "CommandOrControl+R",
-      action: () => {
-        command.build.action((binaryPath: string) => run(binaryPath));
-      },
+      action: () =>
+        command.build.action((binaryPath: string) => run(binaryPath)),
       disabled:
-        !currentProjectConfig?.mainProgram ||
+        !currentProjectConfig.mainProgram ||
         isBuilding ||
         debuggingChild !== undefined,
     },
@@ -480,25 +507,6 @@ function App() {
     if (currentProjectPath) {
       openProject(currentProjectPath);
     }
-    Promise.all(
-      JSON.parse(localStorage.getItem("openedFiles") || "[]").map(
-        async (path: string) => {
-          const value = await readTextFile(path);
-          const language = await extname(path);
-          monaco.editor.createModel(
-            value,
-            "cpp",
-            monaco.Uri.parse(`file:///${path}`)
-          );
-          return {
-            path,
-            name: await basename(path),
-            language,
-            value,
-          };
-        }
-      )
-    ).then((openedFiles) => setOpenedFiles(openedFiles));
   }, []);
 
   useEffect(() => {
@@ -551,8 +559,11 @@ function App() {
   }, [openedFiles]);
 
   useEffect(() => {
-    editingPath = "";
     localStorage.setItem("currentFileIndex", currentFileIndex.toString());
+  }, [currentFileIndex]);
+
+  useEffect(() => {
+    editingPath = "";
     watchImmediate(
       openedFiles.map((openedFile) => openedFile.path),
       { recursive: false },
@@ -584,20 +595,30 @@ function App() {
         }
       }
     ).then((watch) => (stopWatching = watch));
+    // registerAllcommand();
+    return () => {
+      stopWatching();
+      // unregisterAll();
+    };
+  }, [currentFileIndex, openedFiles]);
+
+  useEffect(() => {
     onkeydown = (e) => {
       if (
+        e.ctrlKey &&
         e.key !== "F5" &&
-        ((e.ctrlKey &&
-          e.key.toLowerCase() !== "c" &&
-          e.key.toLowerCase() !== "v") ||
-          e.shiftKey)
+        !(
+          e.key.toLowerCase() === "c" ||
+          e.key.toLowerCase() === "v" ||
+          e.key.toLowerCase() === "x"
+        )
       ) {
         e.preventDefault();
         for (let key in command) {
           if (
             command[key].shortcut &&
             e.key !== "Control" &&
-            e.key !== "SHIFT"
+            e.key !== "Shift"
           ) {
             const buttons: string[] = [];
             if (e.ctrlKey) {
@@ -610,20 +631,19 @@ function App() {
               buttons.push(e.key.toUpperCase());
             }
             if (buttons.join("+") === command[key].shortcut) {
-              command[key].action();
+              if (!command[key].disabled) {
+                command[key].action();
+              }
               break;
             }
           }
         }
       }
     };
-    // registerAllcommand();
     return () => {
-      stopWatching();
       onkeydown = null;
-      // unregisterAll();
     };
-  }, [currentFileIndex, openedFiles]);
+  }, [currentFileIndex, openedFiles, currentProjectConfig]);
 
   return (
     <ColorContext.Provider value={{ color, setColor }}>
