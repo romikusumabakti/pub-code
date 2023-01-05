@@ -660,7 +660,7 @@ function App() {
               setCurrentFileIndex,
             }}
           >
-            <div className="flex flex-col h-screen bg-surface1 text-on-surface">
+            <div className="flex flex-col h-screen bg-surface1">
               <TitleBar
                 menu={[
                   command.new,
@@ -672,7 +672,7 @@ function App() {
                   command.about,
                 ]}
               />
-              <div className="flex-grow relative">
+              <div className="grow relative">
                 <Allotment
                   proportionalLayout={false}
                   separator={false}
@@ -688,7 +688,7 @@ function App() {
                   >
                     <div className="flex flex-col h-full">
                       <header>{t("explorer.title")}</header>
-                      <div className="flex flex-col flex-grow overflow-y-auto">
+                      <div className="flex flex-col grow overflow-y-auto">
                         {entries.map((entry) => (
                           <Folder
                             key={entry.path}
@@ -707,7 +707,7 @@ function App() {
                           openedFiles.length > 0 && "bg-surface1"
                         }`}
                       >
-                        <span className="flex flex-grow overflow-x-auto overflow-y-clip [&>*]:shrink-0">
+                        <span className="flex grow overflow-x-auto overflow-y-clip [&>*]:shrink-0">
                           {openedFiles.map((file, i) => (
                             <Fragment key={i}>
                               {i === 0 && (
@@ -821,7 +821,7 @@ function App() {
                         <textarea
                           readOnly
                           spellCheck="false"
-                          className="bg-transparent outline-none flex-grow font-mono resize-none px-6"
+                          className="bg-transparent outline-none grow font-mono resize-none px-6"
                           ref={logRef}
                         />
                       </div>

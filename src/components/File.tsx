@@ -78,7 +78,7 @@ function File({ path, name, level = 0, folderPath, onCreate }: EntryProps) {
         <FileIcon name={newName} />
         {isRenaming ? (
           <input
-            className="outline-none w-0 flex-grow"
+            className="outline-none w-0 grow"
             autoFocus
             value={newName}
             spellCheck={false}
@@ -135,7 +135,7 @@ function File({ path, name, level = 0, folderPath, onCreate }: EntryProps) {
           />
         ) : (
           <span
-            className={`whitespace-nowrap overflow-ellipsis overflow-hidden flex-grow text-left ${
+            className={`whitespace-nowrap overflow-ellipsis overflow-hidden grow text-left ${
               level === 0 && "font-bold"
             }`}
           >

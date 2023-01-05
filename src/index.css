@@ -117,7 +117,7 @@ header {
 
 button,
 .button {
-  @apply flex items-center bg-on-surface bg-opacity-0 cursor-pointer;
+  @apply flex items-center bg-on-surface bg-opacity-0 cursor-auto;
 }
 
 button:hover,
@@ -145,7 +145,7 @@ a {
 
 input[type="text"],
 select {
-  @apply flex-grow h-8 px-2 rounded border border-outline outline-primary bg-transparent;
+  @apply grow h-8 px-2 rounded border border-outline outline-primary bg-transparent;
 }
 
 option {

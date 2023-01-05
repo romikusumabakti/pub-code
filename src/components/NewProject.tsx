@@ -168,7 +168,7 @@ function NewProject({ isOpen, setIsOpen, onCreate }: NewProjectProps) {
             </div>
             <div className="flex items-center">
               <span className="w-32">{t("newProject.location")}</span>
-              <span className="flex-grow flex relative">
+              <span className="grow flex relative">
                 <input
                   type="text"
                   value={location}

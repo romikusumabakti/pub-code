@@ -7,7 +7,7 @@
   },
   "package": {
     "productName": "PUB Code",
-    "version": "0.6.3-beta"
+    "version": "0.6.4-beta"
   },
   "tauri": {
     "allowlist": {

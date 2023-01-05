@@ -9,7 +9,7 @@ PUB Code (pronounced `/pé u bé koʊd/`) is a fast, simple, and open source C/C
 
 ![PUB Code screenshot](https://user-images.githubusercontent.com/41172548/210191461-606f95df-a0c3-4e08-a1b9-8079bc5dbb46.jpg)
 
-> PUB (pronounced `/pé u bé/`, _Pemberdayaan Umat Berkelanjutan_) is a scholarship program that provides opportunities for high school graduates to continue their studies (at Universitas Nasional PASIM, Bandung, Indonesia), learn to code, and become full-stack developers.
+> [PUB](https://www.pubpasim.org/) (pronounced `/pé u bé/`, _Pemberdayaan Umat Berkelanjutan_) is a scholarship program that provides opportunities for high school graduates to continue their studies (at [Universitas Nasional PASIM](https://pasim.ac.id/), Bandung, Indonesia), learn to code, and become full-stack developers.
 
 ## ✨ Features
 

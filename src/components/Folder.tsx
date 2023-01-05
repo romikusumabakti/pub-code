@@ -55,7 +55,7 @@ function Folder({ path, name, level = 0, open = false }: EntryProps) {
       >
         <span>{isOpen ? <VscChevronDown /> : <VscChevronRight />}</span>
         <span
-          className={`whitespace-nowrap overflow-ellipsis overflow-hidden flex-grow text-left ${
+          className={`whitespace-nowrap overflow-ellipsis overflow-hidden grow text-left ${
             level === 0 && "font-bold"
           }`}
         >

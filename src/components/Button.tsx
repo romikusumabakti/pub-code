@@ -1,36 +1,23 @@
 import { ButtonHTMLAttributes } from "react";
 
-interface VariantStyle {
-  button: string;
-  stateLayer: string;
-}
+type Variant = "filled" | "tonal";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "filled" | "tonal";
+  variant?: Variant;
   className?: string;
 }
 
-function Button({ variant = "filled", className, ...rest }: ButtonProps) {
-  const variants: Record<string, VariantStyle> = {
-    filled: {
-      button: "bg-primary text-on-primary",
-      stateLayer: "bg-on-primary",
-    },
-    tonal: {
-      button: "bg-secondary-container text-on-secondary-container",
-      stateLayer: "bg-on-secondary-container",
-    },
+function Button({ variant = "filled", className, ...props }: ButtonProps) {
+  const styles: Record<Variant, string> = {
+    filled: "interactive-bg-primary",
+    tonal: "interactive-bg-secondary-container",
   };
 
   return (
-    <span
-      className={`self-center font-bold mt-auto w-32 rounded-full flex ${variants[variant].button} ${className}`}
-    >
-      <button
-        className={`h-10 px-5 justify-center flex-grow hover:bg-opacity-hover rounded-full`}
-        {...rest}
-      />
-    </span>
+    <button
+      className={`h-10 px-5 justify-center font-bold w-32 rounded-full ${styles[variant]} ${className}`}
+      {...props}
+    />
   );
 }
 
