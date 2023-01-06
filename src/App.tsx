@@ -19,7 +19,7 @@ import {
   writeTextFile,
 } from "@tauri-apps/api/fs";
 // import { register, registerAll } from "@tauri-apps/api/globalShortcut";
-import { basename, extname, join } from "@tauri-apps/api/path";
+import { basename, dirname, extname, join } from "@tauri-apps/api/path";
 import { Child, Command } from "@tauri-apps/api/shell";
 import { invoke } from "@tauri-apps/api/tauri";
 
@@ -106,7 +106,7 @@ interface File {
 }
 
 interface IFileContext {
-  currentProjectPath: string;
+  currentFolderPath: string;
   openedFiles: File[];
   setOpenedFiles: Dispatch<SetStateAction<File[]>>;
   currentFileIndex: number;
@@ -165,8 +165,8 @@ function App() {
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
   const [isLogOpen, setIsLogOpen] = useState<boolean>(true);
 
-  const [currentProjectPath, setCurrentProjectPath] = useState<string>(
-    localStorage.getItem("currentProjectPath")!
+  const [currentFolderPath, setCurrentFolderPath] = useState<string>(
+    localStorage.getItem("currentFolderPath")!
   );
   const [currentProjectConfig, setCurrentProjectConfig] = useState<
     Record<string, string>
@@ -178,7 +178,7 @@ function App() {
   );
 
   const [isNewProjectOpen, setIsNewProjectOpen] = useState<boolean>(false);
-  const [isOpenProjectOpen, setIsOpenProjectOpen] = useState<boolean>(false);
+  const [isOpenFolderOpen, setIsOpenFolderOpen] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isBuilding, setIsBuilding] = useState<boolean>(false);
   const [debuggingChild, setDebuggingChild] = useState<Child>();
@@ -186,14 +186,12 @@ function App() {
   const [status, setStatus] = useState<string>();
 
   function log(data: string) {
-    if (logRef.current) {
-      logRef.current.value += data + "\n";
-      logRef.current?.scrollTo(0, logRef.current.scrollHeight);
-    }
+    logRef.current!.value += data + "\n";
+    logRef.current?.scrollTo(0, logRef.current.scrollHeight);
   }
 
-  async function openProject(path: string) {
-    localStorage.setItem("currentProjectPath", path);
+  async function openFolder(path: string, start = openedFiles.length === 0) {
+    localStorage.setItem("currentFolderPath", path);
     const entries = await readDir(path);
     setEntries([
       {
@@ -204,16 +202,29 @@ function App() {
     ]);
     const configFileName = "pub-code.json";
     const pubCodeJson = entries.find((entry) => entry.name === configFileName);
-    if (logRef.current && pubCodeJson) {
-      logRef.current.value = "";
+    logRef.current!.value = "";
+    if (pubCodeJson) {
       log(`${t("status.reading")} ${configFileName}...`);
       const contents = await readTextFile(pubCodeJson.path);
-      setCurrentProjectConfig(JSON.parse(contents));
+      const projectConfig = JSON.parse(contents);
+      if (start) {
+        if (projectConfig.mainProgram) {
+          openMainProgram(path, projectConfig);
+        } else {
+          setOpenedFiles([]);
+        }
+      }
+      setCurrentProjectConfig(projectConfig);
+    } else if (start) {
+      setOpenedFiles([]);
     }
   }
 
-  async function openMainProgram(projectPath: string) {
-    const mainProgramFileName = `${currentProjectConfig.mainProgram}.${currentProjectConfig.language}`;
+  async function openMainProgram(
+    projectPath: string,
+    projectConfig: Record<string, string>
+  ) {
+    const mainProgramFileName = `${projectConfig.mainProgram}.${projectConfig.language}`;
     const path = await join(projectPath, mainProgramFileName);
     log(`${t("log.openMainProgramFile")} (${mainProgramFileName})...`);
     setOpenedFiles([
@@ -236,58 +247,59 @@ function App() {
   }
 
   async function build(sourcePath: string, callback?: Function) {
-    if (logRef.current) {
-      setIsBuilding(true);
-      log(`${t("status.compiling")}...`);
-      setStatus(`${t("status.compiling")}...`);
-      const buildFolderPath = await join(currentProjectPath, "build");
-      if (!(await exists(buildFolderPath))) {
-        await createDir(buildFolderPath, {
-          recursive: true,
-        });
-      }
-      const language = await extname(sourcePath);
-      const program = await basename(
-        sourcePath,
-        `.${currentProjectConfig.language || language}`
-      );
-      const binaryPath = await join(
-        currentProjectPath,
-        "build",
-        `${program}.exe`
-      );
-      const command = new Command(`build_${language}`, [
-        "-g",
-        sourcePath,
-        "-o",
-        binaryPath,
-      ]);
-      command.stderr.on("data", (data) => {
-        if (data.includes(": warning: ")) {
-          setIsLogOpen(true);
-        }
-        log(data);
+    setIsBuilding(true);
+    log(`${t("status.compiling")}...`);
+    setStatus(`${t("status.compiling")}...`);
+    const buildFolderPath = await join(currentFolderPath, "build");
+    if (!(await exists(buildFolderPath))) {
+      await createDir(buildFolderPath, {
+        recursive: true,
       });
-      command.on("close", async (data) => {
-        setDebuggingChild(undefined);
-        setStatus("");
-        if (data.code === 0) {
-          sendStats("build");
-          log(`${t("log.compilation.finished")} (${binaryPath}).`);
-          if (typeof callback === "function") {
-            await callback(binaryPath);
-          }
-        } else {
-          setIsLogOpen(true);
-          log(`${t("log.compilation.failed")}.`);
-        }
-        setIsBuilding(false);
-      });
-      setDebuggingChild(await command.spawn());
     }
+    const language = await extname(sourcePath);
+    const program = await basename(
+      sourcePath,
+      `.${currentProjectConfig.language || language}`
+    );
+    const binaryPath = await join(currentFolderPath, "build", `${program}.exe`);
+    const command = new Command(`build_${language}`, [
+      "-g",
+      sourcePath,
+      "-o",
+      binaryPath,
+    ]);
+    let error = false;
+    command.stderr.on("data", (data) => {
+      if (data.includes(": warning: ")) {
+        setIsLogOpen(true);
+      } else if (data.includes(": error: ")) {
+        error = true;
+        setIsLogOpen(true);
+      }
+      log(data);
+    });
+    command.on("close", async (data) => {
+      setDebuggingChild(undefined);
+      setStatus("");
+      if (data.code === 0) {
+        sendStats("build");
+        log(`${t("log.compilation.finished")} (${binaryPath}).`);
+        if (typeof callback === "function") {
+          await callback(binaryPath);
+        }
+      } else {
+        if (error) {
+          log(`${t("log.compilation.failed")}.`);
+        } else {
+          log(`${t("log.compilation.aborted")}.`);
+        }
+      }
+      setIsBuilding(false);
+    });
+    setDebuggingChild(await command.spawn());
   }
 
-  async function run(binaryPath: string) {
+  async function run(binaryPath: string, cwd: string) {
     if (binaryPath) {
       log(`${t("status.running")}...`);
       setStatus(`${t("status.running")}...`);
@@ -297,7 +309,7 @@ function App() {
         "-ex",
         '"set new-console on"',
         "-ex",
-        `set cwd ${currentProjectPath}`,
+        `set cwd ${cwd}`,
         "-ex",
         "run",
       ]);
@@ -322,30 +334,25 @@ function App() {
       title: t("command.open"),
       shortcut: "CommandOrControl+O",
       action: async () => {
-        setIsOpenProjectOpen(true);
+        setIsOpenFolderOpen(true);
         const selected = await open({
           directory: true,
         });
-        setIsOpenProjectOpen(false);
+        setIsOpenFolderOpen(false);
         if (typeof selected === "string") {
-          await openProject(selected);
+          await openFolder(selected, true);
           setIsSplashOpen(false);
-          if (currentProjectConfig.mainProgram) {
-            openMainProgram(selected);
-          } else {
-            setOpenedFiles([]);
-          }
-          setCurrentProjectPath(selected);
+          setCurrentFolderPath(selected);
         }
       },
-      disabled: isOpenProjectOpen,
+      disabled: isOpenFolderOpen,
     },
     save: {
       title: t("command.save"),
       shortcut: "CommandOrControl+S",
       action: async (callback: Function) => {
-        if (logRef.current && editorRef.current && openedFiles.length > 0) {
-          logRef.current.value = "";
+        if (editorRef.current && openedFiles.length > 0) {
+          logRef.current!.value = "";
           try {
             await editorRef.current
               .getAction("editor.action.formatDocument")
@@ -373,7 +380,7 @@ function App() {
       action: async (callback?: Function) => {
         if (openedFiles.length > 0 && currentProjectConfig) {
           const sourcePath = await join(
-            currentProjectPath,
+            currentFolderPath,
             `${currentProjectConfig.mainProgram}.${currentProjectConfig.language}`
           );
           build(sourcePath, callback);
@@ -385,7 +392,9 @@ function App() {
       title: t("command.run"),
       shortcut: "CommandOrControl+R",
       action: () =>
-        command.build.action((binaryPath: string) => run(binaryPath)),
+        command.build.action((binaryPath: string) =>
+          run(binaryPath, currentFolderPath)
+        ),
       disabled:
         !currentProjectConfig.mainProgram ||
         isBuilding ||
@@ -394,10 +403,11 @@ function App() {
     runFile: {
       title: t("command.runFile"),
       shortcut: "CommandOrControl+Shift+R",
-      action: () => {
+      action: async () => {
         if (openedFiles.length > 0) {
+          const fileDir = await dirname(openedFiles[currentFileIndex].path);
           build(openedFiles[currentFileIndex].path, (binaryPath: string) =>
-            run(binaryPath)
+            run(binaryPath, fileDir)
           );
         }
       },
@@ -503,9 +513,9 @@ function App() {
     //     unregisterAll();
     //   }
     // });
-    const currentProjectPath = localStorage.getItem("currentProjectPath");
-    if (currentProjectPath) {
-      openProject(currentProjectPath);
+    const currentFolderPath = localStorage.getItem("currentFolderPath");
+    if (currentFolderPath) {
+      openFolder(currentFolderPath);
     }
   }, []);
 
@@ -547,14 +557,12 @@ function App() {
   }, [darkTheme]);
 
   useEffect(() => {
-    if (openedFiles.length > 0) {
-      localStorage.setItem(
-        "openedFiles",
-        JSON.stringify(openedFiles.map((openedFile) => openedFile.path))
-      );
-      if (currentFileIndex >= openedFiles.length) {
-        setCurrentFileIndex(openedFiles.length - 1);
-      }
+    localStorage.setItem(
+      "openedFiles",
+      JSON.stringify(openedFiles.map((openedFile) => openedFile.path))
+    );
+    if (openedFiles.length > 0 && currentFileIndex >= openedFiles.length) {
+      setCurrentFileIndex(openedFiles.length - 1);
     }
   }, [openedFiles]);
 
@@ -653,7 +661,7 @@ function App() {
         <CommandContext.Provider value={command}>
           <FileContext.Provider
             value={{
-              currentProjectPath,
+              currentFolderPath,
               openedFiles,
               setOpenedFiles,
               currentFileIndex,
@@ -772,7 +780,10 @@ function App() {
                               <button
                                 className="flex gap-2 px-4 text-primary"
                                 onClick={command.runFile.action}
-                                title={command.runFile.shortcut}
+                                title={command.runFile.shortcut?.replace(
+                                  "CommandOrControl",
+                                  "Ctrl"
+                                )}
                               >
                                 <VscPlay />
                                 {t("command.runFile")}
@@ -833,10 +844,9 @@ function App() {
                   isOpen={isNewProjectOpen}
                   setIsOpen={setIsNewProjectOpen}
                   onCreate={async (location: string) => {
-                    await openProject(location);
+                    await openFolder(location, true);
                     setIsSplashOpen(false);
-                    openMainProgram(location);
-                    setCurrentProjectPath(location);
+                    setCurrentFolderPath(location);
                   }}
                 />
                 <About isOpen={isAboutOpen} setIsOpen={setIsAboutOpen} />

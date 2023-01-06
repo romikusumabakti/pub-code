@@ -107,6 +107,7 @@ export const resources = {
         compilation: {
           finished: "Compilation finished",
           failed: "Compilation failed",
+          aborted: "Compilation aborted",
         },
         runningFinished: "Running finished",
       },
@@ -218,8 +219,9 @@ export const resources = {
         compilation: {
           finished: "Kompilasi selesai",
           failed: "Kompilasi gagal",
+          aborted: "Kompilasi dibatalkan",
         },
-        runningFinished: "Running selesai",
+        runningFinished: "Penjalanan selesai",
       },
     },
   },

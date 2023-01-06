@@ -19,7 +19,7 @@ function TitleBar({ menu }: TitleBarProps) {
   const { theme, setTheme, darkTheme, darkThemeMediaQueryList } =
     useContext(ThemeContext) || {};
   const [isMaximized, setIsMaximized] = useState<boolean>();
-  const { currentProjectPath, openedFiles, currentFileIndex } =
+  const { currentFolderPath, openedFiles, currentFileIndex } =
     useContext(FileContext) || {};
 
   async function updateIsMaximized() {
@@ -70,9 +70,7 @@ function TitleBar({ menu }: TitleBarProps) {
             typeof currentFileIndex === "number" &&
             openedFiles.length > 0 &&
             openedFiles[currentFileIndex]?.name,
-          currentProjectPath?.substring(
-            currentProjectPath.lastIndexOf("\\") + 1
-          ),
+          currentFolderPath?.substring(currentFolderPath.lastIndexOf("\\") + 1),
           "PUB Code",
         ]
           .filter((s) => s)
