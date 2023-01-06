@@ -111,7 +111,7 @@ function NewProject({ isOpen, setIsOpen, onCreate }: NewProjectProps) {
         onSubmit={async (e) => {
           e.preventDefault();
           const projectPath = await join(location, configuration.name);
-          if (!exists(projectPath)) {
+          if (!(await exists(projectPath))) {
             await createDir(await join(projectPath, "build"), {
               recursive: true,
             });
