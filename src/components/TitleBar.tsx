@@ -1,6 +1,6 @@
 import { appWindow } from "@tauri-apps/api/window";
 import { useContext, useEffect, useState } from "react";
-import { MdDarkMode, MdLightMode, MdSchool } from "react-icons/md";
+import { MdDarkMode, MdLightMode } from "react-icons/md";
 import {
   VscChromeClose,
   VscChromeMaximize,
@@ -9,6 +9,7 @@ import {
 } from "react-icons/vsc";
 import { FileContext, ICommand, ThemeContext } from "../App";
 import { useTranslation } from "react-i18next";
+import PUBCodeIcon from "./PUBCodeIcon";
 
 interface TitleBarProps {
   menu: ICommand[];
@@ -44,9 +45,9 @@ function TitleBar({ menu }: TitleBarProps) {
       <span data-tauri-drag-region className="flex">
         <span
           data-tauri-drag-region
-          className="flex items-center text-2xl pl-3 pr-2 text-primary"
+          className="flex items-center pl-3 pr-2 text-primary"
         >
-          <MdSchool className="pointer-events-none" />
+          <PUBCodeIcon className="fill-primary w-6 pointer-events-none" />
         </span>
         <span className="flex [&>*]:px-3">
           {menu.map((button: ICommand) => (

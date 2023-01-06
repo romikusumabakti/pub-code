@@ -1,5 +1,5 @@
-import { MdSchool } from "react-icons/md";
 import { VscFile, VscFileBinary, VscFileCode } from "react-icons/vsc";
+import PUBCodeIcon from "./PUBCodeIcon";
 
 function FileIcon({ name }: { name?: string }) {
   return (
@@ -9,7 +9,7 @@ function FileIcon({ name }: { name?: string }) {
       ) : name?.endsWith(".exe") ? (
         <VscFileBinary />
       ) : name === "pub-code.json" ? (
-        <MdSchool />
+        <PUBCodeIcon className="fill-primary w-4" />
       ) : (
         <VscFile />
       )}

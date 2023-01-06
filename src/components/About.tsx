@@ -1,17 +1,17 @@
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { MdSchool } from "react-icons/md";
 import { Trans, useTranslation } from "react-i18next";
 import Dialog from "./Dialog";
 import { VscClose } from "react-icons/vsc";
 import Link from "./Link";
 import { getVersion } from "@tauri-apps/api/app";
+import PUBCodeIcon from "./PUBCodeIcon";
 
 export function AboutHeader() {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col gap-1">
-      <h1 className="display text-3xl flex gap-3">
-        <MdSchool className="text-primary" />
+    <div className="flex flex-col gap-2">
+      <h1 className="display text-3xl flex gap-3 items-center">
+        <PUBCodeIcon className="fill-primary w-10" />
         <span>
           <strong>PUB</strong> Code
         </span>

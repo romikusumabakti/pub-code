@@ -7,7 +7,7 @@
 
 PUB Code (pronounced `/pé u bé koʊd/`) is a fast, simple, and open source C/C++ IDE for Windows.
 
-![PUB Code screenshot](https://user-images.githubusercontent.com/41172548/210819219-e2c36498-40ab-4295-abcc-4c63e90b3124.jpg)
+![PUB Code screenshot](https://user-images.githubusercontent.com/41172548/211024120-83f420a0-3c77-4f83-aa70-872840d5ec69.jpg#gh-dark-mode-only)![PUB Code screenshot](https://user-images.githubusercontent.com/41172548/211024136-2f0363d6-f30f-4cc1-92df-2482280ba25b.jpg#gh-light-mode-only)
 
 > [PUB](https://www.pubpasim.org/) (pronounced `/pé u bé/`, _Pemberdayaan Umat Berkelanjutan_) is a scholarship program that provides opportunities for high school graduates to continue their studies (at [Universitas Nasional PASIM](https://pasim.ac.id/), Bandung, Indonesia), learn to code, and become full-stack developers.
 
